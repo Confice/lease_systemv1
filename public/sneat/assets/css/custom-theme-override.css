@@ -1,0 +1,1193 @@
+/**
+ * Custom Theme Override - Color Palette
+ * This file overrides the default theme colors with custom color palette
+ * Palette: #FFFFFF, #7F9267, #D6D9DA, #201F23, #EFEFEA
+ */
+
+:root {
+  --bs-primary: #7F9267;
+  --bs-primary-rgb: 127, 146, 103;
+  --bs-secondary: #D6D9DA;
+  --bs-dark: #201F23;
+  --bs-body-bg: #EFEFEA;
+}
+
+/* GLOBAL BORDER COLOR - All borders should be #6B7A56 */
+*,
+*::before,
+*::after {
+  border-color: #6B7A56 !important;
+}
+
+/* EXCEPTIONS - Elements that should NOT have #6B7A56 border */
+.sidebar-toggle-btn,
+#sidebar-toggle-btn {
+  border-color: #d9dee3 !important;
+}
+
+.btn-label-secondary.btn-icon,
+#backButton {
+  border-color: transparent !important;
+}
+
+.btn-more,
+.btn-danger,
+.btn-outline-danger {
+  border-color: inherit !important;
+}
+
+#btnArchiveSelected {
+  border: none !important;
+  border-color: transparent !important;
+}
+
+/* Kebab menu dropdown - border color #E3E4E4 */
+.dropdown-menu,
+.dropdown-menu.show,
+#usersTable .dropdown-menu,
+#stallsTable .dropdown-menu,
+#applicationsTable .dropdown-menu {
+  border-color: #E3E4E4 !important;
+}
+
+/* Specific border properties */
+.border,
+.border-top,
+.border-bottom,
+.border-left,
+.border-right,
+.border-start,
+.border-end {
+  border-color: #6B7A56 !important;
+}
+
+/* Form controls */
+.form-control,
+.form-select,
+.form-check-input,
+.input-group-text,
+.form-control-plaintext {
+  border-color: #6B7A56 !important;
+}
+
+/* Cards */
+.card {
+  border-color: #6B7A56 !important;
+}
+
+/* Tables */
+.table,
+.table th,
+.table td {
+  border-color: #6B7A56 !important;
+}
+
+/* Buttons - except specific ones */
+.btn:not(.sidebar-toggle-btn):not(.btn-label-secondary.btn-icon):not(.btn-more):not(.btn-danger):not(.btn-outline-danger):not(#backButton):not(#btnArchiveSelected) {
+  border-color: #6B7A56 !important;
+}
+
+/* Modals */
+.modal-content,
+.modal-header,
+.modal-footer {
+  border-color: #6B7A56 !important;
+}
+
+/* Offcanvas */
+.offcanvas,
+.offcanvas-header {
+  border-color: #6B7A56 !important;
+}
+
+/* Side drawer dividers - MUST have #6B7A56 border */
+.offcanvas-header.border-bottom,
+.offcanvas-header,
+.offcanvas .offcanvas-header {
+  border-bottom-color: #6B7A56 !important;
+  border-bottom: 1px solid #6B7A56 !important;
+}
+
+/* Alerts */
+.alert {
+  border-color: #6B7A56 !important;
+}
+
+/* List groups */
+.list-group-item {
+  border-color: #6B7A56 !important;
+}
+
+/* Pagination */
+.page-link {
+  border-color: #6B7A56 !important;
+}
+
+/* Nav tabs */
+.nav-tabs .nav-link {
+  border-color: #6B7A56 !important;
+}
+
+/* Sort by dropdown button - MUST have #6B7A56 border */
+#sortDropdown,
+.sort-by-dropdown,
+[data-bs-toggle="dropdown"][id*="sort"],
+button[data-bs-toggle="dropdown"][id="sortDropdown"] {
+  border-color: #6B7A56 !important;
+}
+
+/* Export button - MUST have #6B7A56 border */
+.btn-label-primary.dropdown-toggle,
+#exportDropdown .btn-label-primary,
+[data-bs-toggle="dropdown"]:has(.bx-export),
+button.dropdown-toggle:has(.bx-export) {
+  border-color: #6B7A56 !important;
+}
+
+/* Show __ entries dropdown - MUST have #6B7A56 border */
+.entries-dropdown-toggle,
+.entries-dropdown-menu,
+[class*="entries-dropdown"],
+button.entries-dropdown-toggle {
+  border-color: #6B7A56 !important;
+}
+
+/* List of requirement button - MUST have #6B7A56 border */
+.btn[onclick*="requirement"],
+.btn[data-bs-toggle="offcanvas"][data-bs-target*="requirement"],
+#btnListRequirements,
+button[onclick*="requirement"],
+button[data-bs-toggle="offcanvas"][data-bs-target*="requirement"] {
+  border-color: #6B7A56 !important;
+}
+
+/* Exceptions for specific states that need different colors */
+.is-invalid,
+.was-validated .form-control:invalid,
+.was-validated .form-select:invalid,
+.form-control.is-invalid,
+.form-select.is-invalid,
+.alert-danger {
+  border-color: #dc3545 !important;
+}
+
+.is-valid,
+.was-validated .form-control:valid,
+.was-validated .form-select:valid,
+.form-control.is-valid,
+.form-select.is-valid,
+.alert-success {
+  border-color: #198754 !important;
+}
+
+/* Focus states */
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: #6B7A56 !important;
+  box-shadow: 0 0 0 0.2rem rgba(107, 122, 86, 0.25) !important;
+}
+
+/* Override primary color throughout the theme */
+.text-primary {
+  color: #7F9267 !important;
+}
+
+.bg-primary {
+  background-color: #7F9267 !important;
+}
+
+.btn-primary {
+  background-color: #7F9267;
+  border-color: #7F9267;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background-color: #6B7A56;
+  border-color: #6B7A56;
+}
+
+.btn-primary:focus,
+.btn-primary.focus {
+  background-color: #6B7A56;
+  border-color: #6B7A56;
+  box-shadow: 0 0 0 0.2rem rgba(127, 146, 103, 0.5);
+}
+
+.btn-primary:not(:disabled):not(.disabled):active,
+.btn-primary:not(:disabled):not(.disabled).active {
+  background-color: #5A6749;
+  border-color: #5A6749;
+}
+
+/* Remove hover transform animation from Add New Record and Export buttons */
+.btn-primary:hover,
+.btn-label-primary:hover {
+  transform: none !important;
+}
+
+.btn-outline-primary {
+  color: #7F9267;
+  border-color: #7F9267;
+}
+
+.btn-outline-primary:hover {
+  background-color: #7F9267;
+  border-color: #7F9267;
+  color: #fff;
+}
+
+.border-primary {
+  border-color: #7F9267 !important;
+}
+
+/* Menu active states */
+.bg-menu-theme .menu-inner > .menu-item.active > .menu-link {
+  color: #7F9267 !important;
+  background-color: rgba(127, 146, 103, 0.16) !important;
+}
+
+.bg-menu-theme .menu-inner > .menu-item.active:before {
+  background: #7F9267 !important;
+}
+
+.bg-menu-theme .menu-inner .menu-sub > .menu-item.active > .menu-link:not(.menu-toggle):before {
+  background-color: #7F9267 !important;
+  border: 3px solid rgba(127, 146, 103, 0.16) !important;
+}
+
+.bg-menu-theme .menu-inner .menu-sub > .menu-item.active > .menu-link.menu-toggle .menu-icon {
+  color: #7F9267;
+}
+
+/* App brand toggle button */
+.app-brand .layout-menu-toggle {
+  background-color: #7F9267;
+}
+
+.app-brand .layout-menu-toggle i {
+  color: #fff;
+}
+
+/* Navbar toggle button */
+.layout-navbar .layout-menu-toggle .nav-link {
+  color: #7F9267;
+}
+
+.layout-navbar .layout-menu-toggle .nav-link:hover {
+  color: #6B7A56;
+}
+
+/* Links and active states */
+a {
+  color: #7F9267;
+}
+
+a:hover {
+  color: #6B7A56;
+}
+
+/* Badges */
+.badge.bg-primary {
+  background-color: #7F9267 !important;
+}
+
+/* Progress bars */
+.progress-bar {
+  background-color: #7F9267;
+}
+
+/* Form controls */
+.form-control:focus,
+.form-select:focus {
+  border-color: #7F9267;
+  box-shadow: 0 0 0 0.2rem rgba(127, 146, 103, 0.25);
+}
+
+.form-check-input:checked {
+  background-color: #7F9267;
+  border-color: #7F9267;
+}
+
+/* Tables */
+.table-primary,
+.table-primary > th,
+.table-primary > td {
+  background-color: #7F9267;
+}
+
+/* Cards with primary border */
+.card-primary {
+  border-color: #7F9267;
+}
+
+/* Alerts */
+.alert-primary {
+  color: #3d4a2c;
+  background-color: rgba(127, 146, 103, 0.15);
+  border-color: rgba(127, 146, 103, 0.3);
+}
+
+/* Pagination */
+.page-link {
+  color: #7F9267 !important;
+}
+
+.page-link:hover,
+.page-link:focus {
+  color: #6B7A56 !important;
+  background-color: #EFEFEA !important;
+  border-color: #7F9267 !important;
+}
+
+.page-item.active .page-link,
+.page-item.active .page-link:hover,
+.page-item.active .page-link:focus,
+.pagination li.active > a:not(.page-link),
+.pagination li.active > a:not(.page-link):hover,
+.pagination li.active > a:not(.page-link):focus {
+  background-color: #7F9267 !important;
+  border-color: #7F9267 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0.125rem 0.25rem rgba(127, 146, 103, 0.4) !important;
+}
+
+/* ============================================
+   GLOBAL DROPDOWN MENU - All Pages
+   ============================================ */
+/* Fix dropdown item active state - Remove violet, use green */
+.dropdown-item.active,
+.dropdown-item:active {
+  color: #FFFFFF !important;
+  background-color: #7F9267 !important;
+  text-decoration: none !important;
+}
+
+.dropdown-item.active *,
+.dropdown-item:active *,
+.dropdown-item.active i,
+.dropdown-item:active i,
+.dropdown-item.active span,
+.dropdown-item:active span {
+  color: #FFFFFF !important;
+}
+
+/* Fix dropdown item hover state */
+.dropdown-item:hover,
+.dropdown-item:focus {
+  color: #7F9267 !important;
+  background-color: #EFEFEA !important;
+}
+
+.dropdown-item:hover *,
+.dropdown-item:focus *,
+.dropdown-item:hover i,
+.dropdown-item:focus i {
+  color: #7F9267 !important;
+}
+
+/* Ensure text-secondary dropdown items maintain dark color on hover */
+.dropdown-item.text-secondary:hover,
+.dropdown-item.text-secondary:focus {
+  color: #7F9267 !important;
+}
+
+.dropdown-item.text-secondary:active,
+.dropdown-item.text-secondary.active {
+  color: #FFFFFF !important;
+}
+
+/* Fix dropdown divider */
+.dropdown-divider {
+  border-top-color: #D6D9DA !important;
+}
+
+/* List group */
+.list-group-item.active {
+  background-color: #7F9267;
+  border-color: #7F9267;
+}
+
+/* Nav tabs */
+.nav-tabs .nav-link.active {
+  color: #7F9267;
+  border-color: #7F9267;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: #7F9267;
+}
+
+/* Sidebar toggle button - ensure visibility */
+.layout-navbar .layout-menu-toggle {
+  display: flex !important;
+}
+
+@media (max-width: 1199.98px) {
+  .layout-navbar .layout-menu-toggle {
+    display: flex !important;
+  }
+}
+
+/* Additional component overrides */
+.switch-input:checked ~ .switch-label {
+  background-color: #7F9267;
+}
+
+.custom-control-input:checked ~ .custom-control-label::before {
+  background-color: #7F9267;
+  border-color: #7F9267;
+}
+
+.range-primary {
+  color: #7F9267;
+}
+
+.range-primary::-webkit-slider-thumb {
+  background-color: #7F9267;
+}
+
+.range-primary::-moz-range-thumb {
+  background-color: #7F9267;
+}
+
+/* Breadcrumb */
+.breadcrumb-item.active {
+  color: #7F9267;
+}
+
+/* Modal */
+.modal-header .btn-close:focus {
+  box-shadow: 0 0 0 0.2rem rgba(127, 146, 103, 0.25);
+}
+
+/* Toast notifications */
+.toast-header {
+  background-color: #EFEFEA;
+  border-bottom-color: #7F9267;
+}
+
+/* Tooltip */
+.tooltip .tooltip-inner {
+  background-color: #7F9267;
+}
+
+.bs-tooltip-top .tooltip-arrow::before,
+.bs-tooltip-auto[data-popper-placement^="top"] .tooltip-arrow::before {
+  border-top-color: #7F9267;
+}
+
+.bs-tooltip-bottom .tooltip-arrow::before,
+.bs-tooltip-auto[data-popper-placement^="bottom"] .tooltip-arrow::before {
+  border-bottom-color: #7F9267;
+}
+
+.bs-tooltip-start .tooltip-arrow::before,
+.bs-tooltip-auto[data-popper-placement^="left"] .tooltip-arrow::before {
+  border-left-color: #7F9267;
+}
+
+.bs-tooltip-end .tooltip-arrow::before,
+.bs-tooltip-auto[data-popper-placement^="right"] .tooltip-arrow::before {
+  border-right-color: #7F9267;
+}
+
+/* Chart colors override (if using charts) */
+.chart-primary {
+  background-color: #7F9267 !important;
+  border-color: #7F9267 !important;
+}
+
+/* Input group addon */
+.input-group-text {
+  border-color: #7F9267;
+}
+
+/* Spinner */
+.spinner-border-primary {
+  border-color: #7F9267;
+  border-right-color: transparent;
+}
+
+/* Smooth transitions for color changes */
+.btn-primary,
+.btn-outline-primary,
+.nav-link,
+.page-link,
+.dropdown-item {
+  transition: all 0.3s ease-in-out;
+}
+
+/* ============================================
+   COMPREHENSIVE COLOR OVERRIDES - Remove ALL violet/blue
+   ============================================ */
+
+/* Override any remaining CSS variables */
+:root {
+  --bs-primary: #7F9267 !important;
+  --bs-primary-rgb: 127, 146, 103 !important;
+  --bs-secondary: #D6D9DA !important;
+  --bs-dark: #201F23 !important;
+  --bs-body-bg: #EFEFEA !important;
+  --bs-body-color: #201F23 !important;
+  --bs-border-color: #D6D9DA !important;
+}
+
+/* All text-primary variations */
+.text-primary,
+.text-primary *,
+[class*="text-primary"],
+a.text-primary,
+p.text-primary {
+  color: #7F9267 !important;
+}
+
+/* All bg-primary variations */
+.bg-primary,
+[class*="bg-primary"],
+.bg-primary * {
+  background-color: #7F9267 !important;
+}
+
+/* Label primary buttons */
+.btn-label-primary,
+.btn-label-primary:hover,
+.btn-label-primary:focus,
+.btn-label-primary:active {
+  background-color: #EFEFEA !important;
+  border-color: rgba(127, 146, 103, 0.2) !important;
+  color: #7F9267 !important;
+}
+
+/* Badge variations */
+.badge-label-primary,
+.bg-label-primary {
+  background-color: #EFEFEA !important;
+  color: #7F9267 !important;
+  border-color: rgba(127, 146, 103, 0.2) !important;
+}
+
+/* SVG and icon colors */
+svg [fill="#696cff"],
+svg [fill="#696CFF"],
+path[fill="#696cff"],
+path[fill="#696CFF"] {
+  fill: #7F9267 !important;
+}
+
+/* Chart colors - if using charts */
+.apexcharts-legend-series .apexcharts-legend-marker {
+  background-color: #7F9267 !important;
+}
+
+/* Navbar active states */
+.navbar-nav .nav-link.active,
+.navbar-nav .nav-link:focus,
+.navbar-nav .nav-link:hover {
+  color: #7F9267 !important;
+}
+
+/* Breadcrumb active */
+.breadcrumb-item.active {
+  color: #201F23 !important;
+}
+
+/* Table primary rows */
+.table-primary,
+.table-primary > th,
+.table-primary > td,
+.table-primary > thead > tr > th {
+  background-color: #EFEFEA !important;
+  color: #201F23 !important;
+  border-color: rgba(127, 146, 103, 0.2) !important;
+}
+
+/* Label primary */
+.label-primary {
+  background-color: #7F9267 !important;
+  color: #FFFFFF !important;
+}
+
+/* Progress bars */
+.progress-bar.bg-primary,
+.progress-bar[style*="primary"] {
+  background-color: #7F9267 !important;
+}
+
+/* Switches and toggles */
+.switch-input:checked ~ .switch-label {
+  background-color: #7F9267 !important;
+}
+
+.form-switch .form-check-input:checked {
+  background-color: #7F9267 !important;
+  border-color: #7F9267 !important;
+}
+
+/* Custom checkboxes and radios */
+.custom-control-input:checked ~ .custom-control-label::before {
+  background-color: #7F9267 !important;
+  border-color: #7F9267 !important;
+}
+
+.form-check-input:checked {
+  background-color: #7F9267 !important;
+  border-color: #7F9267 !important;
+}
+
+.form-check-input:focus {
+  border-color: #7F9267 !important;
+  box-shadow: 0 0 0 0.25rem rgba(127, 146, 103, 0.25) !important;
+}
+
+.form-check-input:active {
+  border-color: #7F9267 !important;
+}
+
+/* Range sliders */
+.range-primary,
+input[type="range"].form-range {
+  color: #7F9267 !important;
+}
+
+.range-primary::-webkit-slider-thumb,
+input[type="range"].form-range::-webkit-slider-thumb {
+  background-color: #7F9267 !important;
+}
+
+.range-primary::-moz-range-thumb,
+input[type="range"].form-range::-moz-range-thumb {
+  background-color: #7F9267 !important;
+}
+
+/* Accordion */
+.accordion-button:not(.collapsed) {
+  color: #7F9267 !important;
+  background-color: rgba(127, 146, 103, 0.05) !important;
+}
+
+.accordion-button:not(.collapsed)::after {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%237F9267'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e") !important;
+}
+
+/* Timeline and activity feeds */
+.timeline-item-primary,
+.activity-item-primary {
+  border-left-color: #7F9267 !important;
+}
+
+/* Avatar rings */
+.avatar.ring-primary {
+  box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #7F9267 !important;
+}
+
+/* Divider colors */
+.divider.divider-primary::before,
+.divider.divider-primary::after {
+  background-color: #7F9267 !important;
+}
+
+/* Card border primary */
+.card.border-primary {
+  border-color: #7F9267 !important;
+}
+
+/* Stats card primary accent */
+.card-statistics .card-header-primary,
+.stats-card-primary {
+  border-top-color: #7F9267 !important;
+}
+
+/* Pricing cards */
+.pricing-card-primary {
+  border-color: #7F9267 !important;
+}
+
+.pricing-card-primary .card-header {
+  background-color: #7F9267 !important;
+  color: #FFFFFF !important;
+}
+
+/* Alert link colors */
+.alert-primary a {
+  color: #5A6749 !important;
+}
+
+/* Background colors */
+.bg-label-primary {
+  background-color: rgba(127, 146, 103, 0.16) !important;
+  color: #7F9267 !important;
+}
+
+/* Icon wrapper primary */
+.icon-wrapper-primary {
+  background-color: rgba(127, 146, 103, 0.16) !important;
+  color: #7F9267 !important;
+}
+
+/* Menu hover states */
+.menu-link:hover,
+.menu-link:focus {
+  color: #7F9267 !important;
+}
+
+/* Navbar brand */
+.navbar-brand,
+.navbar-brand:hover,
+.navbar-brand:focus {
+  color: #201F23 !important;
+}
+
+/* Dropdown header */
+.dropdown-header {
+  color: #201F23 !important;
+}
+
+/* Override any inline styles or data attributes */
+[style*="#696cff"],
+[style*="#696CFF"],
+[data-color="primary"][style*="696cff"],
+[data-color="primary"][style*="696CFF"] {
+  color: #7F9267 !important;
+  background-color: #7F9267 !important;
+  border-color: #7F9267 !important;
+}
+
+/* ============================================
+   GLOBAL STICKY TOPBAR / NAVBAR - All Pages
+   ============================================ */
+.layout-navbar,
+#layout-navbar,
+nav.layout-navbar,
+.layout-navbar.navbar-detached {
+  position: sticky !important;
+  position: -webkit-sticky !important;
+  top: 0 !important;
+  z-index: 1020 !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Override Sneat's width calculations to match content width */
+.layout-navbar.navbar-detached,
+.layout-navbar.navbar-detached.container-fluid {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  border-radius: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Ensure navbar inner content aligns with card content padding */
+.layout-navbar .container-fluid,
+.layout-navbar .navbar-nav-right {
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+  max-width: 100% !important;
+}
+
+/* Ensure layout-page respects sticky navbar */
+.layout-page {
+  position: relative;
+  padding-top: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Ensure content wrapper is scrollable and reduce spacing */
+.content-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: 0 !important;
+}
+
+.content-wrapper .container-fluid.flex-grow-1.container-p-y {
+  padding-top: 0.75rem !important;
+  padding-bottom: 1.5rem !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  max-width: 100% !important;
+}
+
+/* Make cards wider by reducing padding and maximizing width */
+.content-wrapper .card {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.content-wrapper .card-header,
+.content-wrapper .card-body {
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+}
+
+/* Profile icon text color - ensure it's #EFEFEA */
+.avatar-initial,
+.avatar-initial *,
+.avatar .avatar-initial,
+.navbar-dropdown .avatar-initial,
+.navbar-dropdown .avatar .avatar-initial,
+.dropdown-user .avatar-initial,
+.dropdown-user .avatar .avatar-initial {
+  color: #EFEFEA !important;
+}
+
+/* Override bg-label-primary color specifically for profile icons */
+.navbar-dropdown .avatar-initial.bg-label-primary,
+.dropdown-user .avatar-initial.bg-label-primary,
+.dropdown-menu .avatar-initial.bg-label-primary {
+  color: #EFEFEA !important;
+}
+
+/* Profile dropdown - make all text black */
+.dropdown-menu .dropdown-item,
+.dropdown-menu .dropdown-item span,
+.dropdown-menu .dropdown-item small {
+  color: #000000 !important;
+}
+
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus {
+  background-color: #f8f9fa !important;
+  color: #000000 !important;
+}
+
+/* ============================================
+   GLOBAL COLOR OVERRIDES - bg-light, bg-gray, text-secondary
+   ============================================ */
+/* Override bg-light to use cream color */
+.bg-light,
+.offcanvas-header.bg-light {
+  background-color: #EFEFEA !important;
+}
+
+/* Override bg-gray to use primary green */
+.bg-gray {
+  background-color: #7F9267 !important;
+}
+
+/* Override text-secondary to use dark color */
+.text-secondary,
+i.text-secondary,
+.text-secondary * {
+  color: #201F23 !important;
+}
+
+/* Override text-muted for better contrast */
+.text-muted {
+  color: #6B7A56 !important;
+}
+
+/* ============================================
+   VIEW RECORD DRAWER - Color Palette Fix
+   ============================================ */
+/* Fix offcanvas header background */
+#viewUserDrawer .offcanvas-header.bg-light,
+#viewUserDrawer .offcanvas-header {
+  background-color: #EFEFEA !important;
+  border-bottom-color: #D6D9DA !important;
+}
+
+/* Fix text-primary to use green */
+#viewUserDrawer .text-primary,
+#viewUserDrawer .offcanvas-title.text-primary {
+  color: #7F9267 !important;
+}
+
+/* Fix bg-gray to use primary color */
+#viewUserDrawer .bg-gray {
+  background-color: #7F9267 !important;
+}
+
+/* Fix text-secondary to use dark color */
+#viewUserDrawer .text-secondary,
+#viewUserDrawer i.text-secondary {
+  color: #201F23 !important;
+}
+
+/* Fix text-muted */
+#viewUserDrawer .text-muted {
+  color: #6B7A56 !important;
+}
+
+/* Fix card shadows and borders - Match stalls module */
+#viewUserDrawer .card {
+  background-color: #FFFFFF !important;
+  border-color: #D6D9DA !important;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075), 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Fix badge colors in view drawer */
+#viewUserDrawer .badge.bg-label-primary {
+  background-color: #EFEFEA !important;
+  color: #7F9267 !important;
+  border-color: rgba(127, 146, 103, 0.2) !important;
+}
+
+#viewUserDrawer .badge.bg-label-warning {
+  background-color: rgba(255, 171, 0, 0.1) !important;
+  color: #ffab00 !important;
+}
+
+#viewUserDrawer .badge.bg-label-danger {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+  color: #dc3545 !important;
+}
+
+#viewUserDrawer .badge.bg-label-dark {
+  background-color: rgba(32, 31, 35, 0.1) !important;
+  color: #201F23 !important;
+}
+
+/* Fix icon circles in view drawer */
+#viewUserDrawer .bg-gray.rounded-circle {
+  background-color: #7F9267 !important;
+}
+
+/* Fix any blue/violet shades in view drawer */
+#viewUserDrawer [class*="text-info"],
+#viewUserDrawer [class*="bg-info"],
+#viewUserDrawer [class*="text-blue"],
+#viewUserDrawer [class*="bg-blue"] {
+  color: #7F9267 !important;
+  background-color: #7F9267 !important;
+}
+
+/* Add rounded borders to View Record drawer - Match Add/Edit drawers */
+#viewUserDrawer,
+#viewSubmissionDrawer,
+#viewApplicationDrawer {
+  border-radius: 1rem 0 0 1rem !important;
+  overflow: hidden;
+}
+
+/* View drawer header rounded top corners */
+#viewUserDrawer .offcanvas-header,
+#viewSubmissionDrawer .offcanvas-header,
+#viewApplicationDrawer .offcanvas-header {
+  border-radius: 1rem 0 0 0 !important;
+}
+
+/* ============================================
+   ALL SIDE DRAWERS - Match Stall View Drawer Design
+   ============================================ */
+/* All side drawer dividers should use #6B7A56 - already set by global rule above */
+
+/* Ensure all cards in drawers have proper shadows - Match Stall module */
+.offcanvas .card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075), 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Specific drawer card shadows */
+#viewUserDrawer .card,
+#addUserDrawer .card,
+#editUserDrawer .card,
+#viewSubmissionDrawer .card,
+#viewApplicationDrawer .card,
+#viewStallDrawer .card,
+#addStallDrawer .card,
+#editStallDrawer .card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075), 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ============================================
+   TABLE ACTIONS COLUMN - Always Center Aligned
+   ============================================ */
+/* Ensure Actions column header is always center-aligned */
+table thead th.text-center:last-child {
+  text-align: center !important;
+}
+
+/* Ensure Actions column cells are center-aligned */
+table tbody td.text-center:last-child {
+  text-align: center !important;
+}
+
+/* ============================================
+   TABLE DROPDOWN MENU - Prevent Table Scrollbar
+   ============================================ */
+/* Prevent table from showing scrollbars when dropdown opens */
+.table-responsive {
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+}
+
+/* Ensure dropdown menus in table cells don't cause overflow */
+#usersTable tbody td,
+#stallsTable tbody td,
+#applicationsTable tbody td {
+  position: relative;
+  overflow: visible !important;
+}
+
+/* Ensure dropdown containers in table cells allow overflow and proper positioning */
+#usersTable tbody td .dropdown,
+#stallsTable tbody td .dropdown,
+#applicationsTable tbody td .dropdown {
+  position: relative !important;
+}
+
+/* Ensure dropdown menus are positioned correctly and don't cause table shifts */
+#usersTable .dropdown-menu,
+#stallsTable .dropdown-menu,
+#applicationsTable .dropdown-menu {
+  position: absolute !important;
+  z-index: 1050 !important;
+}
+
+/* Prevent table container from creating scrollbars when dropdown is open */
+.card-body .table-responsive {
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+}
+
+/* Ensure card-body doesn't create scrollbars when dropdown is open */
+.card-body:has(.dropdown-menu.show) {
+  overflow: visible !important;
+}
+
+/* Prevent scrollbars on table cells when dropdown is open */
+#usersTable tbody td:has(.dropdown-menu.show),
+#stallsTable tbody td:has(.dropdown-menu.show),
+#applicationsTable tbody td:has(.dropdown-menu.show) {
+  overflow: visible !important;
+}
+
+/* ============================================
+   KEBAB MENU BACKGROUND COLOR
+   ============================================ */
+/* Make kebab menu buttons have #EFEFEA background - border #E3E4E4 */
+#usersTable .btn-light.btn-icon,
+#stallsTable .btn-light.btn-icon,
+#applicationsTable .btn-light.btn-icon,
+#usersTable button.btn-light[data-bs-toggle="dropdown"],
+#stallsTable button.btn-light[data-bs-toggle="dropdown"],
+#applicationsTable button.btn-light[data-bs-toggle="dropdown"] {
+  background-color: #EFEFEA !important;
+  border-color: #E3E4E4 !important;
+}
+
+#usersTable .btn-light.btn-icon:hover,
+#stallsTable .btn-light.btn-icon:hover,
+#applicationsTable .btn-light.btn-icon:hover,
+#usersTable button.btn-light[data-bs-toggle="dropdown"]:hover,
+#stallsTable button.btn-light[data-bs-toggle="dropdown"]:hover,
+#applicationsTable button.btn-light[data-bs-toggle="dropdown"]:hover {
+  background-color: #EFEFEA !important;
+  border-color: #E3E4E4 !important;
+}
+
+/* ============================================
+   ALL CANCEL BUTTONS - Global Styling
+   ============================================ */
+/* Cancel buttons in modals, side drawers - buttons with data-bs-dismiss that are not primary or close */
+button[data-bs-dismiss]:not(.btn-close):not(.btn-primary),
+.btn[data-bs-dismiss]:not(.btn-close):not(.btn-primary),
+button.btn-label-primary[data-bs-dismiss],
+.btn.btn-label-primary[data-bs-dismiss] {
+  background-color: transparent !important;
+  border: 2px solid #6B7A56 !important;
+  color: #6B7A56 !important;
+}
+
+button[data-bs-dismiss]:not(.btn-close):not(.btn-primary):hover,
+.btn[data-bs-dismiss]:not(.btn-close):not(.btn-primary):hover,
+button.btn-label-primary[data-bs-dismiss]:hover,
+.btn.btn-label-primary[data-bs-dismiss]:hover {
+  background-color: #EFEFEA !important;
+  border: 2px solid #6B7A56 !important;
+  color: #6B7A56 !important;
+}
+
+/* SweetAlert cancel buttons */
+.swal2-cancel {
+  background-color: transparent !important;
+  border: 2px solid #6B7A56 !important;
+  color: #6B7A56 !important;
+}
+
+.swal2-cancel:hover,
+.swal2-cancel:focus,
+.swal2-cancel:active {
+  background-color: #EFEFEA !important;
+  border: 2px solid #6B7A56 !important;
+  color: #6B7A56 !important;
+}
+
+/* Remove borders from SweetAlert2 notification icons */
+.swal2-icon,
+.swal2-icon *,
+.swal2-icon::before,
+.swal2-icon::after {
+  border: none !important;
+  border-color: transparent !important;
+}
+
+.swal2-toast .swal2-icon,
+.swal2-toast .swal2-icon *,
+.swal2-toast .swal2-icon::before,
+.swal2-toast .swal2-icon::after {
+  border: none !important;
+  border-color: transparent !important;
+}
+
+/* ============================================
+   REQUIREMENT FILE MODAL - Above Side Drawer
+   ============================================ */
+/* Ensure requirement file modal appears above offcanvas (z-index 1090) */
+#requirementFileModal {
+  z-index: 1105 !important;
+}
+
+#requirementFileModal.show,
+#requirementFileModal.modal.show {
+  z-index: 1105 !important;
+}
+
+body:has(#requirementFileModal.show) .modal-backdrop,
+.modal-backdrop.show:has(+ #requirementFileModal),
+.modal-backdrop:last-of-type {
+  z-index: 1104 !important;
+}
+
+/* Ensure modal is above offcanvas when both are open */
+.offcanvas.show ~ #requirementFileModal,
+#requirementFileModal.show {
+  z-index: 1105 !important;
+}
+
+/* ============================================
+   EMAIL TEMPLATE BUTTONS - Global Fix
+   ============================================ */
+/* Fix any inline-styled buttons with violet color */
+a[style*="#696cff"],
+a[style*="#696CFF"],
+button[style*="#696cff"],
+button[style*="#696CFF"] {
+  background-color: #7F9267 !important;
+}
+
+/* Fix any buttons with violet colors in email templates or anywhere */
+[style*="background-color:#696cff"],
+[style*="background-color:#696CFF"],
+[style*="background-color: #696cff"],
+[style*="background-color: #696CFF"] {
+  background-color: #7F9267 !important;
+}
+
+/* Ensure button hover states in emails use green */
+a[style*="#7F9267"]:hover,
+button[style*="#7F9267"]:hover {
+  background-color: #6B7A56 !important;
+}
+

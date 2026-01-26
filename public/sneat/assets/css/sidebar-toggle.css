@@ -1,0 +1,401 @@
+/**
+ * Sidebar Toggle Custom Styles
+ * Circular toggle button on the sidebar
+ */
+
+/* Circular Toggle Button on Sidebar */
+.sidebar-toggle-btn {
+  position: absolute !important;
+  right: -18px !important;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #fff !important;
+  border: 2px solid #d9dee3;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(255, 255, 255, 0.8);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10000 !important;
+  transition: all 0.3s ease;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #7F9267;
+  box-shadow: 0 4px 12px rgba(127, 146, 103, 0.15);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.sidebar-toggle-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.sidebar-toggle-btn i {
+  font-size: 18px;
+  color: #697a8d;
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.sidebar-toggle-btn:hover i {
+  color: #7F9267;
+}
+
+/* Rotate icon when sidebar is collapsed */
+.layout-wrapper.layout-menu-collapsed .sidebar-toggle-btn i {
+  transform: rotate(180deg);
+}
+
+/* Position adjustments */
+.app-brand {
+  position: relative;
+  padding-right: 20px;
+  z-index: 9998;
+  overflow: visible;
+}
+
+/* Ensure button is above everything */
+.layout-menu {
+  position: relative;
+  overflow: visible !important;
+  z-index: 1000;
+}
+
+/* Ensure the sidebar container doesn't clip the button */
+.layout-container {
+  overflow: visible;
+}
+
+/* Make sure button appears on top of overlay */
+.layout-overlay {
+  z-index: 999;
+}
+
+/* Ensure app-brand container allows button to show */
+.app-brand.demo {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+/* Hide the old navbar toggle */
+.layout-navbar .layout-menu-toggle {
+  display: none !important;
+}
+
+/* ============================================
+   COLLAPSED SIDEBAR STYLING - ORGANIZED
+   ============================================ */
+
+/* Sidebar width when collapsed */
+.layout-wrapper.layout-menu-collapsed .layout-menu {
+  width: 5.25rem !important;
+}
+
+/* Hide text but keep logo size and position similar when collapsed */
+.layout-wrapper.layout-menu-collapsed .app-brand {
+  padding: 1rem !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 70px;
+}
+
+.layout-wrapper.layout-menu-collapsed .app-brand-link {
+  width: 100% !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 0 !important;
+}
+
+.layout-wrapper.layout-menu-collapsed .app-brand-logo,
+.layout-wrapper.layout-menu-collapsed .app-brand-logo img {
+  /* Keep original size */
+  width: 30px !important;
+  height: auto !important;
+  margin: 0 auto !important;
+}
+
+.layout-wrapper.layout-menu-collapsed .app-brand .app-brand-text,
+.layout-wrapper.layout-menu-collapsed .app-brand-text,
+.layout-wrapper.layout-menu-collapsed .app-brand .ms-2 {
+  display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Organize menu items when collapsed - keep same icon size and spacing, just hide text */
+.layout-wrapper.layout-menu-collapsed .menu-inner {
+  /* Keep same padding as expanded */
+  padding: 0.5rem 0;
+}
+
+.layout-wrapper.layout-menu-collapsed .menu-item {
+  /* Keep same width and margins as expanded */
+  width: 100%;
+  margin: 0;
+}
+
+.layout-wrapper.layout-menu-collapsed .menu-link {
+  /* Center the icon when collapsed */
+  padding: 0.625rem 0 !important;
+  margin: 0.0625rem 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  /* But center the icon visually */
+  position: relative;
+}
+
+/* ============================================
+   ICON SIZE FIX - Keep original size when collapsed
+   ============================================ */
+/* Override Sneat's collapsed menu icon styles - keep exact original size */
+/* Use highly specific selectors to override all Sneat collapsed styles with !important */
+
+/* Target all possible menu icon selectors when collapsed */
+.layout-wrapper.layout-menu-collapsed .menu-icon,
+.layout-wrapper.layout-menu-collapsed .menu-icon.tf-icons,
+.layout-wrapper.layout-menu-collapsed .menu-inner > .menu-item > .menu-link .menu-icon,
+.layout-wrapper.layout-menu-collapsed .menu-link .menu-icon.tf-icons,
+.layout-wrapper.layout-menu-collapsed .menu-item .menu-link .menu-icon,
+.layout-wrapper.layout-menu-collapsed .menu-item .menu-link i.menu-icon,
+.layout-wrapper.layout-menu-collapsed .menu-item .menu-link i.tf-icons,
+.layout-menu-collapsed .menu-inner > .menu-item > .menu-link .menu-icon,
+.layout-menu-collapsed:not(:hover) .menu-inner > .menu-item > .menu-link .menu-icon,
+.menu-collapsed:not(:hover) .menu-inner > .menu-item > .menu-link .menu-icon,
+.layout-wrapper.layout-menu-collapsed.menu-collapsed:not(:hover) .menu-inner > .menu-item > .menu-link .menu-icon {
+  /* Keep EXACT original size - same as expanded state */
+  margin: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  /* CRITICAL: Override Sneat's width: 5.25rem rule - keep icon's natural width */
+  width: 1.5rem !important;
+  min-width: 1.5rem !important;
+  max-width: 1.5rem !important;
+  /* Keep original font-size - this is what makes icons the same size */
+  font-size: 1.25rem !important;
+  line-height: 1.25rem !important;
+  /* Override any text-align from Sneat */
+  text-align: center !important;
+  /* Center it horizontally in the collapsed sidebar */
+  position: relative !important;
+  left: auto !important;
+  margin: 0 auto !important;
+  transform: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  /* Ensure no scaling or transformations affect size */
+  scale: 1 !important;
+}
+
+/* Also ensure boxicons size stays same - override any boxicons font-size rules */
+.layout-wrapper.layout-menu-collapsed .menu-icon.bx,
+.layout-wrapper.layout-menu-collapsed .menu-icon.tf-icons.bx,
+.layout-wrapper.layout-menu-collapsed i.bx.menu-icon,
+.layout-wrapper.layout-menu-collapsed i.tf-icons.bx {
+  font-size: 1.25rem !important;
+  line-height: 1.25rem !important;
+}
+
+/* Additional override for when menu has collapsed class directly */
+.menu.menu-collapsed .menu-icon,
+.menu.menu-collapsed:not(:hover) .menu-inner > .menu-item > .menu-link .menu-icon {
+  width: 1.5rem !important;
+  font-size: 1.25rem !important;
+}
+
+.layout-wrapper.layout-menu-collapsed .menu-link div:not(.menu-icon),
+.layout-wrapper.layout-menu-collapsed .menu-link .menu-text,
+.layout-wrapper.layout-menu-collapsed .menu-link [data-i18n] {
+  display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Hide submenu when collapsed */
+.layout-wrapper.layout-menu-collapsed .menu-sub {
+  display: none !important;
+}
+
+/* Hide menu toggle arrows when collapsed */
+.layout-wrapper.layout-menu-collapsed .menu-link.menu-toggle::after {
+  display: none !important;
+}
+
+/* ============================================
+   MAIN CONTENT ADJUSTMENT
+   ============================================ */
+
+/* Adjust layout-page padding when sidebar is collapsed - maximize space but keep content positions */
+@media (min-width: 1200px) {
+  .layout-wrapper.layout-menu-collapsed.layout-menu-fixed .layout-page {
+    padding-left: 5.25rem !important;
+  }
+  
+  /* For non-fixed menu */
+  .layout-wrapper.layout-menu-collapsed:not(.layout-menu-fixed) .layout-container {
+    position: relative;
+  }
+  
+  .layout-wrapper.layout-menu-collapsed:not(.layout-menu-fixed) .layout-page {
+    margin-left: 5.25rem !important;
+  }
+  
+  /* Ensure content-wrapper uses full available width */
+  .layout-wrapper.layout-menu-collapsed .content-wrapper {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+  
+  /* Reduce left padding/margin on container-fluid when collapsed */
+  .layout-wrapper.layout-menu-collapsed .container-fluid {
+    padding-left: 0.75rem !important;
+    padding-right: 1.5rem !important;
+    max-width: 100% !important;
+  }
+  
+  /* Ensure tables expand to full width and remove extra spacing */
+  .layout-wrapper.layout-menu-collapsed .table-responsive {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .layout-wrapper.layout-menu-collapsed .table,
+  .layout-wrapper.layout-menu-collapsed table {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+  
+  /* Cards should fill available space */
+  .layout-wrapper.layout-menu-collapsed .card {
+    width: 100%;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
+/* ============================================
+   CARD BODY PADDING - Proper spacing for all pages
+   ============================================ */
+/* Card body should have proper padding for balance - applies to all states */
+.card-body {
+  padding: 1.5rem !important;
+}
+
+/* When card-body explicitly has p-0, add padding to table-responsive instead */
+.card-body.p-0 {
+  padding: 0 !important;
+}
+
+.card-body.p-0 .table-responsive {
+  padding: 1.5rem;
+}
+
+/* Ensure table doesn't touch card edges */
+.card-body .table-responsive {
+  padding: 0;
+  margin: 0;
+}
+
+/* Table should respect card-body padding */
+.card-body .table {
+  margin-bottom: 0;
+  width: 100%;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE
+   ============================================ */
+/* On mobile, hide sidebar completely when collapsed */
+@media (max-width: 1199.98px) {
+  .layout-wrapper.layout-menu-collapsed .layout-menu {
+    transform: translateX(-100%);
+    width: 16.25rem !important;
+  }
+  
+  .layout-wrapper.layout-menu-collapsed .layout-page {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+  }
+}
+
+/* Smooth transitions */
+.layout-wrapper {
+  transition: all 0.3s ease;
+}
+
+.layout-menu {
+  transition: width 0.3s ease;
+}
+
+.layout-container {
+  transition: all 0.3s ease;
+}
+
+.layout-page {
+  transition: padding-left 0.3s ease, margin-left 0.3s ease;
+}
+
+.menu-item,
+.menu-link {
+  transition: all 0.3s ease;
+}
+
+/* Adjust toggle button position when collapsed */
+.layout-wrapper.layout-menu-collapsed .sidebar-toggle-btn {
+  right: -18px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Ensure toggle works on mobile too */
+@media (max-width: 1199.98px) {
+  .sidebar-toggle-btn {
+    display: flex !important;
+    visibility: visible !important;
+  }
+  
+  .layout-wrapper.layout-menu-collapsed .sidebar-toggle-btn {
+    right: 10px;
+    left: auto;
+  }
+}
+
+/* Desktop styles - always show toggle */
+@media (min-width: 1200px) {
+  .sidebar-toggle-btn {
+    display: flex !important;
+    visibility: visible !important;
+  }
+}
+
+/* Alternative position: Top right of sidebar */
+@media (max-width: 768px) {
+  .sidebar-toggle-btn {
+    top: 16px;
+    right: 16px;
+    transform: none;
+  }
+  
+  .layout-wrapper.layout-menu-collapsed .sidebar-toggle-btn {
+    top: 16px;
+    right: 16px;
+    transform: none;
+  }
+}
