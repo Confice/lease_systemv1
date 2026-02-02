@@ -17,12 +17,7 @@
     </div>
     <!-- /Search Bar -->
     
-    <!-- Add New Stall Button -->
-    <div class="d-flex align-items-center">
-        <button type="button" id="btnAddStall" class="btn btn-primary">
-            <i class="bx bx-plus me-1 fs-5"></i> Add New Record
-        </button>
-    </div>
+    <!-- Add New Stall Button removed -->
   </div>
 
   <div class="card-body">
@@ -632,6 +627,37 @@
   #requirementsModal .text-muted {
     color: #201F23 !important;
   }
+
+  /* Ensure Assign to Tenant is always clickable (not greyed by sibling/global styles) */
+  #stallsTable .dropdown-menu .assign-tenant-action {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    cursor: pointer !important;
+  }
+  #stallsTable .dropdown-menu .assign-tenant-action:hover {
+    background-color: #EFEFEA !important;
+    color: #7F9267 !important;
+  }
+
+  /* Assign Tenant modal: above layout and backdrop; dialog + controls must be clickable */
+  #assignTenantModal.modal {
+    z-index: 10600 !important;
+    pointer-events: auto !important;
+  }
+  #assignTenantModal.modal .modal-dialog {
+    pointer-events: auto !important;
+  }
+  #assignTenantModal.modal .modal-content {
+    pointer-events: auto !important;
+  }
+  #assignTenantModal .modal-header *,
+  #assignTenantModal .modal-body *,
+  #assignTenantModal .modal-footer * {
+    pointer-events: auto !important;
+  }
+  body .modal-backdrop {
+    z-index: 10599 !important;
+  }
 </style>
 @endpush
 
@@ -709,12 +735,7 @@ $(function(){
                 <i class="bx bx-edit me-1"></i> Edit
               </a>
             </li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <a href="javascript:;" class="dropdown-item text-danger btn-delete" data-id="${d.stallID}">
-                <i class="bx bx-trash me-1"></i> Delete
-              </a>
-            </li>`;
+            `;
         } else if(d.stallStatus === 'Vacant') {
           // Check if application deadline is set
           const hasApplicationDeadline = d.applicationDeadline && d.applicationDeadline !== null && d.applicationDeadline !== '';
@@ -729,7 +750,7 @@ $(function(){
               </a>
             </li>
             <li>
-              <a href="javascript:;" class="dropdown-item text-secondary btn-assign" data-id="${d.stallID}">
+              <a href="javascript:;" class="dropdown-item text-secondary btn-assign assign-tenant-action" data-id="${d.stallID}">
                 <i class="bx bx-user-plus me-1"></i> Assign to Tenant
               </a>
             </li>
@@ -744,12 +765,7 @@ $(function(){
                 <i class="bx bx-edit me-1"></i> Edit
               </a>
             </li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <a href="javascript:;" class="dropdown-item text-danger btn-delete" data-id="${d.stallID}">
-                <i class="bx bx-trash me-1"></i> Delete
-              </a>
-            </li>`;
+            `;
         } else {
           // Reserved status
           actionButtons = `
@@ -763,12 +779,7 @@ $(function(){
                 <i class="bx bx-edit me-1"></i> Edit
               </a>
             </li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <a href="javascript:;" class="dropdown-item text-danger btn-delete" data-id="${d.stallID}">
-                <i class="bx bx-trash me-1"></i> Delete
-              </a>
-            </li>`;
+            `;
         }
         
         return `
@@ -1281,80 +1292,7 @@ $(function(){
     $('#viewDrawerTitle').html('<i class="bx bx-paperclip me-2 fs-3"></i> SUBMITTED REQUIREMENTS');
   });
 
-  // Open Add Drawer
-  $('#btnAddStall').on('click', function(e){
-    e.preventDefault();
-    $('#addStallForm')[0].reset();
-    $('[data-error]').text('');
-    $('#addStallForm').find('.is-invalid').removeClass('is-invalid');
-    $('#addStallForm').find('.input-group').removeClass('error-state');
-    // Set minimum date to today for Application Deadline (future dates only)
-    const today = new Date().toISOString().split('T')[0];
-    $('#addStallForm input[name="applicationDeadline"]').attr('min', today);
-    new bootstrap.Offcanvas('#addStallDrawer').show();
-  });
-
-  // Submit Add Form
-  $('#addStallForm').on('submit', function(e){
-    e.preventDefault();
-    $('[data-error]').text('');
-    $('#addStallForm').find('.is-invalid').removeClass('is-invalid');
-    $('#addStallForm').find('.input-group').removeClass('error-state');
-
-    let $form = $(this);
-    let $btn = $form.find('button[type="submit"]').prop('disabled', true);
-
-    $.post("{{ route('admins.stalls.store') }}", $form.serialize())
-      .done(function(){
-        bootstrap.Offcanvas.getInstance($('#addStallDrawer')).hide();
-        table.ajax.reload();
-        Swal.fire({
-          icon:'success',
-          title:'Success',
-          text: 'Stall added successfully!',
-          toast:true,
-          position:'top',
-          showConfirmButton:false,
-          showCloseButton:true,
-          timer: 2000,
-          timerProgressBar:true
-        });
-      })
-      .fail(function(xhr){
-        if(xhr.status === 422){
-          let errors = xhr.responseJSON.errors || {};
-          $.each(errors, function(field, messages){
-            $('[data-error="'+field+'"]').text(messages[0]);
-            $('[name="'+field+'"]').addClass('is-invalid');
-            // Add error-state class to parent input-group
-            $('[name="'+field+'"]').closest('.input-group').addClass('error-state');
-          });
-        } else {
-          let errorMessage = xhr.responseJSON?.message || 'Something went wrong while adding stall.';
-          Swal.fire({
-            icon: 'error',
-            title: 'Error!',
-            text: errorMessage,
-            toast: true,
-            position: 'top',
-            showConfirmButton: false,
-            showCloseButton: true,
-            timer: 2000,
-            timerProgressBar: true,
-            animation: false,
-            showClass: {
-              popup: ''
-            },
-            hideClass: {
-              popup: ''
-            }
-          });
-        }
-      })
-      .always(function(){
-        $btn.prop('disabled', false);
-      });
-  });
+  // Add stall actions removed (admin cannot add new map places)
 
   // Open Edit Drawer
   $(document).on('click', '.btn-edit', function() {
@@ -1499,52 +1437,96 @@ $(function(){
   }
 
   // Assign to Tenant - Open Modal
-  $(document).on('click', '.btn-assign', function(){
-    let id = $(this).data('id');
-    let rowData = table.row($(this).closest('tr')).data();
-    
+  $(document).on('click', '.btn-assign', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    var id = $(this).data('id');
+    if (!id) return;
+
+    // Close the actions dropdown so it does not sit on top of the modal
+    var dropdownEl = $(this).closest('.dropdown').find('[data-bs-toggle="dropdown"]')[0];
+    if (dropdownEl && typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+      var dropdownInstance = bootstrap.Dropdown.getInstance(dropdownEl);
+      if (dropdownInstance) dropdownInstance.hide();
+    }
+
     // Get stall details
-    $.get(`/stalls/${id}`, function(stall) {
-      // Set stall ID in form
-      $('#assignStallId').val(id);
-      $('#assignStallNameDisplay').text(stall.stallNo);
-      
-      // Load tenants (already sorted alphabetically by backend)
-      $.get('/stalls/tenants/list', function(response) {
-        const $select = $('#assignTenantSelect');
-        $select.empty().append('<option value="">Select a tenant...</option>');
-        
-        if (response.tenants && response.tenants.length > 0) {
-          response.tenants.forEach(function(tenant) {
-            $select.append(`<option value="${tenant.userID}">${tenant.fullName}</option>`);
+    $.get('/stalls/' + id)
+      .done(function(stall) {
+        $('#assignStallId').val(id);
+        $('#assignStallNameDisplay').text(stall.stallNo || ('Stall #' + id));
+
+        // Load tenants (already sorted alphabetically by backend)
+        $.get('/stalls/tenants/list')
+          .done(function(response) {
+            var $select = $('#assignTenantSelect');
+            $select.empty().append('<option value="">Select a tenant...</option>');
+            if (response.tenants && response.tenants.length > 0) {
+              response.tenants.forEach(function(tenant) {
+                $select.append('<option value="' + tenant.userID + '">' + (tenant.fullName || '') + '</option>');
+              });
+            } else {
+              $select.append('<option value="">No active tenants available</option>');
+            }
+          })
+          .fail(function() {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Failed to load tenants. Please try again.',
+              toast: true,
+              position: 'top',
+              timer: 2000,
+              showConfirmButton: false
+            });
           });
-        } else {
-          $select.append('<option value="">No active tenants available</option>');
-        }
-      }).fail(function() {
+
+        $('#assignTenantForm')[0].reset();
+        $('#assignTenantForm').find('.is-invalid').removeClass('is-invalid');
+        $('[data-error]').text('');
+        var $modal = $('#assignTenantModal');
+        var modalEl = $modal[0];
+        // Move modal to end of body so it is not clipped by parent overflow/stacking context
+        $modal.appendTo('body');
+        var modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
+        $modal.off('shown.bs.modal hidden.bs.modal')
+          .on('shown.bs.modal', function() {
+            $(this).css({ 'z-index': 10600, 'pointer-events': 'auto' });
+            $(this).find('.modal-dialog, .modal-content').css('pointer-events', 'auto');
+            $('.modal-backdrop').last().css('z-index', 10599);
+          })
+          .on('hidden.bs.modal', function() {
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open').css({ overflow: '', paddingRight: '' });
+          });
+        modalInstance.show();
+      })
+      .fail(function() {
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: 'Failed to load tenants. Please try again.',
+          text: 'Could not load stall details. Please try again.',
           toast: true,
           position: 'top',
           timer: 2000,
           showConfirmButton: false
         });
       });
-      
-      // Reset form
-      $('#assignTenantForm')[0].reset();
-      $('#assignTenantForm').find('.is-invalid').removeClass('is-invalid');
-      $('[data-error]').text('');
-      
-      // Show modal
-      new bootstrap.Modal('#assignTenantModal').show();
-    });
   });
 
-  // Confirm Assign Tenant
-  $('#btnConfirmAssign').on('click', function(){
+  // Close Assign Tenant modal when Cancel or X is clicked (delegated)
+  $(document).on('click', '#assignTenantModal [data-bs-dismiss="modal"], #assignTenantModal .btn-close', function() {
+    var modalEl = document.getElementById('assignTenantModal');
+    if (modalEl) {
+      var inst = bootstrap.Modal.getInstance(modalEl);
+      if (inst) inst.hide();
+    }
+    $('.modal-backdrop').remove();
+    $('body').removeClass('modal-open').css({ overflow: '', paddingRight: '' });
+  });
+
+  // Confirm Assign Tenant (delegated so it works after modal is moved to body)
+  $(document).on('click', '#btnConfirmAssign', function(){
     const $form = $('#assignTenantForm');
     const stallID = $('#assignStallId').val();
     const userID = $('#assignTenantSelect').val();
@@ -1569,7 +1551,13 @@ $(function(){
         _token: $('meta[name="csrf-token"]').attr('content')
       },
       success: function(response) {
-        bootstrap.Modal.getInstance('#assignTenantModal').hide();
+        var assignModalEl = document.getElementById('assignTenantModal');
+        if (assignModalEl) {
+          var assignInst = bootstrap.Modal.getInstance(assignModalEl);
+          if (assignInst) assignInst.hide();
+        }
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open');
         table.ajax.reload();
         
         // Show notification using existing system
@@ -1616,67 +1604,7 @@ $(function(){
   });
 
   // Delete User
-  $(document).on('click', '.btn-delete', function(){
-    let id = $(this).data('id');
-
-    Swal.fire({
-      title: 'Are you sure?',
-      text: "This action cannot be undone!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: 'transparent',
-      cancelButtonText: 'Cancel',
-      confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-      if(result.isConfirmed){
-        $.ajax({
-          url: `/stalls/${id}`,
-          method: 'DELETE',
-          data: {_token: $('meta[name="csrf-token"]').attr('content')},
-          success: function(){
-            table.ajax.reload();
-            Swal.fire({
-              icon: 'success',
-              title: 'Stall deleted!',
-              toast: true,
-              position: 'top',
-              timer: 2000,
-              showConfirmButton: false,
-              showCloseButton: true,
-              timerProgressBar: true,
-              animation: false,
-              showClass: {
-                popup: ''
-              },
-              hideClass: {
-                popup: ''
-              }
-            });
-          },
-          error: function(){
-            Swal.fire({
-              icon:'error',
-              title:'Error deleting stall!',
-              toast: true,
-              position: 'top',
-              timer: 2000,
-              showConfirmButton: false,
-              showCloseButton: true,
-              timerProgressBar: true,
-              animation: false,
-              showClass: {
-                popup: ''
-              },
-              hideClass: {
-                popup: ''
-              }
-            });
-          }
-        });
-      }
-    });
-  });
+  // Stall deletion removed
 
   // Clear validation errors when user types/changes input
   $('#addStallForm, #editStallForm').on('input change', '.form-control, .form-select', function(){

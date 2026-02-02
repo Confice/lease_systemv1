@@ -125,7 +125,21 @@ class DashboardController extends Controller
         if (!$user || $user->role !== 'Tenant') {
             abort(403, 'Unauthorized');
         }
-        return view('tenants.dashboard');
+        try {
+            $html = view('tenants.dashboard')->render();
+            return response($html);
+        } catch (\Throwable $e) {
+            \Log::error('Tenant dashboard view error: ' . $e->getMessage(), ['exception' => $e]);
+            if (config('app.debug')) {
+                return response(
+                    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tenant Dashboard Error</title></head><body style="font-family:sans-serif;padding:2rem;">'
+                    . '<h1>Tenant Dashboard Error</h1><p><strong>' . e($e->getMessage()) . '</strong></p>'
+                    . '<pre style="background:#f5f5f5;padding:1rem;overflow:auto;">' . e($e->getTraceAsString()) . '</pre></body></html>',
+                    500
+                );
+            }
+            throw $e;
+        }
     }
 
     /**

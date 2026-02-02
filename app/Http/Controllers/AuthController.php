@@ -257,6 +257,7 @@ class AuthController extends Controller
         }
 
         Auth::login($user);
+        $request->session()->regenerate();
 
         // Log login activity
         try {
@@ -266,8 +267,8 @@ class AuthController extends Controller
         }
 
         $redirect = match($user->role) {
-            'Tenant' => route('tenants.dashboard'),
-            'Lease Manager' => route('admins.dashboard'),
+            'Tenant' => url(route('tenants.dashboard')),
+            'Lease Manager' => url(route('admins.dashboard')),
             default => null
         };
 
@@ -277,6 +278,9 @@ class AuthController extends Controller
                 'errors' => ['email' => ['Unauthorized access.']]
             ], 422);
         }
+
+        // Ensure session is written before sending response (helps with AJAX login + redirect)
+        $request->session()->save();
 
         return response()->json(['success' => true, 'redirect' => $redirect]);
     }
@@ -355,6 +359,8 @@ class AuthController extends Controller
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/'
             ],
+        ], [
+            'password.regex' => 'Password must contain uppercase, lowercase, number, and special character (@$!%*?&).',
         ]);
 
         $record = DB::table('password_reset_tokens')
@@ -367,7 +373,11 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $request->email)->first();
-        $user->update(['password' => Hash::make($request->password)]);
+        $user->update([
+            'password' => Hash::make($request->password),
+            'userStatus' => 'Active',
+            'email_verified_at' => $user->email_verified_at ?? now(),
+        ]);
 
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 

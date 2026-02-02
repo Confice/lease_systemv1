@@ -168,8 +168,8 @@
                     <div class="avatar avatar-online">
                       @php
                         $user = Auth::user();
-                        $firstName = $user->firstName ?? '';
-                        $lastName = $user->lastName ?? '';
+                        $firstName = $user?->firstName ?? '';
+                        $lastName = $user?->lastName ?? '';
                         $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
                       @endphp
                       <div class="avatar-initial rounded-circle bg-label-primary" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #EFEFEA; background-color: #7F9267 !important;">
@@ -189,8 +189,8 @@
                             </div>
                           </div>
                           <div class="flex-grow-1">
-                            <span class="fw-semibold d-block" id="userNameDisplay">Guest</span>
-                            <small class="text-dark">{{ Auth::user()->role ?? 'User' }}</small>
+                            <span class="fw-semibold d-block" id="userNameDisplay">{{ Auth::user()?->firstName ?? 'Guest' }}</span>
+                            <small class="text-dark">{{ Auth::user()?->role ?? 'User' }}</small>
                           </div>
                         </div>
                       </a>
@@ -212,7 +212,6 @@
                 </li>
                 <!--/ User -->
               </ul>
-            </div>
           </nav>
           <!-- / Navbar -->
 
@@ -278,7 +277,7 @@
           if (currentText === 'Guest') {
             @php
               $user = Auth::user();
-              $firstName = $user->firstName ?? 'Guest';
+              $firstName = $user?->firstName ?? 'Guest';
             @endphp
             userNameDisplay.text('{{ $firstName }}');
           }

@@ -19,6 +19,7 @@
         <div class="card p-4 shadow-sm rounded-3">
           <h4 class="mb-3 text-center">🔁 Create a New Password</h4>
           <p class="mb-4 text-center">Update your credentials and get back on track.</p>
+          <p class="small text-muted text-center mb-3">At least 8 characters with uppercase, lowercase, a number, and a special character (@$!%*?&).</p>
 
           <form method="POST" action="{{ route('password.update') }}" autocomplete="off" novalidate>
             @csrf

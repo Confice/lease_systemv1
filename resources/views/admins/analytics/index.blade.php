@@ -260,19 +260,35 @@ $(function(){
     
     let charts = {};
     
-    // Load summary stats
+    // Cache for PDF export
+    let cachedSummary = null;
+    let cachedTopStalls = [];
+    let cachedRevenue = { labels: [], data: [] };
+
+    // Load summary stats (total revenue, monthly revenue, active contracts, total tenants)
     function loadSummaryStats() {
-        $.get("{{ route('admins.analytics.summary') }}", function(data) {
-            $('#totalRevenue').text('₱' + data.totalRevenue);
-            $('#monthlyRevenue').text('₱' + data.monthlyRevenue);
-            $('#activeContracts').text(data.activeContracts);
-            $('#totalTenants').text(data.totalTenants);
-        });
+        $.get("{{ route('admins.analytics.summary') }}")
+            .done(function(data) {
+                cachedSummary = data;
+                var total = parseFloat(data.totalRevenue) || 0;
+                var monthly = parseFloat(data.monthlyRevenue) || 0;
+                $('#totalRevenue').text('₱' + total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                $('#monthlyRevenue').text('₱' + monthly.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                $('#activeContracts').text(data.activeContracts || 0);
+                $('#totalTenants').text(data.totalTenants || 0);
+            })
+            .fail(function() {
+                $('#totalRevenue').text('₱0.00');
+                $('#monthlyRevenue').text('₱0.00');
+                $('#activeContracts').text('0');
+                $('#totalTenants').text('0');
+            });
     }
     
     // Revenue Trends Chart
     function loadRevenueChart(period = 12) {
         $.get("{{ route('admins.analytics.revenue-trends') }}", { period: period }, function(data) {
+            cachedRevenue = { labels: data.labels || [], data: data.data || [] };
             if (charts.revenue) charts.revenue.destroy();
             
             charts.revenue = new ApexCharts(document.querySelector("#revenueChart"), {
@@ -450,25 +466,19 @@ $(function(){
     
     // Top Performing Stalls
     function loadTopStalls() {
-        $.get("{{ route('admins.analytics.top-stalls') }}", function(data) {
-            let html = '';
-            if (data.stalls.length === 0) {
-                html = '<tr><td colspan="5" class="text-center">No data available</td></tr>';
-            } else {
-                data.stalls.forEach((stall, index) => {
-                    html += `
-                        <tr>
-                            <td>${index + 1}</td>
-                            <td><strong>${stall.stallNo}</strong></td>
-                            <td>${stall.marketplace}</td>
-                            <td>₱${stall.revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td>${stall.billCount}</td>
-                        </tr>
-                    `;
-                });
-            }
-            $('#topStallsBody').html(html);
-        });
+        $.get("{{ route('admins.analytics.top-stalls') }}")
+            .done(function(data) {
+                cachedTopStalls = data.stalls || [];
+                let html = '';
+                if (cachedTopStalls.length === 0) {
+                    html = '<tr><td colspan="5" class="text-center">No data available</td></tr>';
+                } else {
+                    cachedTopStalls.forEach((stall, index) => {
+                        html += '<tr><td>' + (index + 1) + '</td><td><strong>' + (stall.stallNo || '') + '</strong></td><td>' + (stall.marketplace || '') + '</td><td>₱' + (stall.revenue || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td><td>' + (stall.billCount || 0) + '</td></tr>';
+                    });
+                }
+                $('#topStallsBody').html(html);
+            });
     }
     
     // Revenue period change
@@ -486,41 +496,84 @@ $(function(){
     loadRetentionChart();
     loadTopStalls();
     
-    // Export CSV
+    // Export CSV (server returns file download)
     $('#exportCsv').on('click', function() {
         window.location.href = "{{ route('admins.analytics.export-csv') }}";
     });
-    
-    // Export PDF
+
+    // Export PDF (data-based report using jsPDF, not screenshot)
     $('#exportPdf').on('click', function() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const element = document.body;
-        
-        html2canvas(element, {
-            scale: 2,
-            useCORS: true,
-            logging: false
-        }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = 210;
-            const pageHeight = 297;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
-            
-            doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-            
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                doc.addPage();
-                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-            }
-            
-            doc.save('analytics-report-' + new Date().toISOString().split('T')[0] + '.pdf');
-        });
+        var jsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : (window.jspdf ? window.jspdf : window.jsPDF);
+        if (!jsPDF) { alert('PDF library not loaded.'); return; }
+        var doc = new jsPDF('p', 'mm', 'a4');
+        var y = 15;
+        var left = 15;
+        var pageW = doc.internal.pageSize.getWidth();
+
+        doc.setFontSize(16);
+        doc.text('Analytics Report', left, y);
+        y += 8;
+        doc.setFontSize(10);
+        doc.text('Generated: ' + new Date().toLocaleString(), left, y);
+        y += 12;
+
+        // Summary
+        doc.setFontSize(12);
+        doc.text('Summary', left, y);
+        y += 8;
+        doc.setFontSize(10);
+        doc.text('Total Revenue: ₱' + (cachedSummary ? (parseFloat(cachedSummary.totalRevenue) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '0.00'), left, y);
+        y += 6;
+        doc.text('Monthly Revenue: ₱' + (cachedSummary ? (parseFloat(cachedSummary.monthlyRevenue) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '0.00'), left, y);
+        y += 6;
+        doc.text('Active Contracts: ' + (cachedSummary ? (cachedSummary.activeContracts || 0) : 0), left, y);
+        y += 6;
+        doc.text('Total Tenants: ' + (cachedSummary ? (cachedSummary.totalTenants || 0) : 0), left, y);
+        y += 14;
+
+        // Top Performing Stalls table
+        doc.setFontSize(12);
+        doc.text('Top 10 Performing Stalls', left, y);
+        y += 8;
+        if (cachedTopStalls && cachedTopStalls.length > 0) {
+            var headers = ['#', 'Stall', 'Marketplace', 'Revenue', 'Bills'];
+            var colW = [12, 35, 50, 45, 25];
+            doc.setFontSize(9);
+            var x = left;
+            headers.forEach(function(h, i) { doc.text(h, x, y); x += colW[i]; });
+            y += 6;
+            cachedTopStalls.forEach(function(stall, idx) {
+                if (y > 270) { doc.addPage(); y = 15; }
+                x = left;
+                doc.text(String(idx + 1), x, y); x += colW[0];
+                doc.text(stall.stallNo || '', x, y); x += colW[1];
+                doc.text((stall.marketplace || '').substring(0, 18), x, y); x += colW[2];
+                doc.text('₱' + (stall.revenue || 0).toFixed(2), x, y); x += colW[3];
+                doc.text(String(stall.billCount || 0), x, y);
+                y += 6;
+            });
+            y += 10;
+        } else {
+            doc.text('No data', left, y);
+            y += 10;
+        }
+
+        // Revenue trends (last 12 months) - summary line
+        if (cachedRevenue && cachedRevenue.labels && cachedRevenue.labels.length) {
+            if (y > 250) { doc.addPage(); y = 15; }
+            doc.setFontSize(12);
+            doc.text('Revenue Trends (Last 12 Months)', left, y);
+            y += 8;
+            doc.setFontSize(9);
+            cachedRevenue.labels.forEach(function(label, i) {
+                if (y > 275) { doc.addPage(); y = 15; }
+                var val = cachedRevenue.data[i] || 0;
+                doc.text(label + ': ₱' + Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2 }), left, y);
+                y += 5;
+            });
+        }
+
+        doc.save('analytics-report-' + new Date().toISOString().split('T')[0] + '.pdf');
     });
 });
 </script>

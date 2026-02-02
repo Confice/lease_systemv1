@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Stall;
 use App\Models\Feedback;
+use App\Models\Contract;
+use App\Models\Bill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -29,7 +31,7 @@ class ArchivedItemsController extends Controller
         $request->validate([
             'items' => 'required|array',
             'items.*.id' => 'required|integer',
-            'items.*.type' => 'required|string|in:user,stall,feedback',
+            'items.*.type' => 'required|string|in:user,stall,feedback,contract,bill',
         ]);
 
         $restoredCount = 0;
@@ -54,6 +56,18 @@ class ArchivedItemsController extends Controller
                     if ($feedback && $feedback->archived_at) {
                         $feedback->archived_at = null;
                         $feedback->save();
+                        $restoredCount++;
+                    }
+                } elseif ($item['type'] === 'contract') {
+                    $contract = Contract::onlyTrashed()->find($item['id']);
+                    if ($contract) {
+                        $contract->restore();
+                        $restoredCount++;
+                    }
+                } elseif ($item['type'] === 'bill') {
+                    $bill = Bill::onlyTrashed()->find($item['id']);
+                    if ($bill) {
+                        $bill->restore();
                         $restoredCount++;
                     }
                 }
@@ -165,6 +179,40 @@ class ArchivedItemsController extends Controller
                 'archived_from' => 'Tenant Feedback',
                 'module_type' => 'feedback',
                 'original_id' => $feedback->feedbackID,
+            ]);
+        }
+
+        // Get archived contracts
+        $archivedContracts = Contract::onlyTrashed()->get();
+        foreach ($archivedContracts as $contract) {
+            $archivedAt = $contract->deleted_at
+                ? Carbon::parse($contract->deleted_at)->setTimezone('Asia/Manila')->toIso8601String()
+                : null;
+
+            $archivedItems->push([
+                'id' => $contract->contractID,
+                'reference_id' => 'CONTRACT-' . str_pad($contract->contractID, 4, '0', STR_PAD_LEFT),
+                'archived_at' => $archivedAt,
+                'archived_from' => 'Leases',
+                'module_type' => 'contract',
+                'original_id' => $contract->contractID,
+            ]);
+        }
+
+        // Get archived bills
+        $archivedBills = Bill::onlyTrashed()->get();
+        foreach ($archivedBills as $bill) {
+            $archivedAt = $bill->deleted_at
+                ? Carbon::parse($bill->deleted_at)->setTimezone('Asia/Manila')->toIso8601String()
+                : null;
+
+            $archivedItems->push([
+                'id' => $bill->billID,
+                'reference_id' => 'BILL-' . str_pad($bill->billID, 4, '0', STR_PAD_LEFT),
+                'archived_at' => $archivedAt,
+                'archived_from' => 'Bills',
+                'module_type' => 'bill',
+                'original_id' => $bill->billID,
             ]);
         }
 

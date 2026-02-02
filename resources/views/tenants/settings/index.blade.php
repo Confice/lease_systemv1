@@ -19,10 +19,10 @@
                 <small class="text-muted">Reduce eye strain in low light.</small>
               </div>
               <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="darkModeToggle" {{ auth()->user()->themePreference === 'dark' ? 'checked' : '' }}>
+                <input class="form-check-input" type="checkbox" id="darkModeToggle" {{ (auth()->user()?->themePreference ?? 'light') === 'dark' ? 'checked' : '' }}>
               </div>
             </div>
-            <input type="hidden" name="themePreference" id="themePreference" value="{{ auth()->user()->themePreference ?? 'light' }}">
+            <input type="hidden" name="themePreference" id="themePreference" value="{{ auth()->user()?->themePreference ?? 'light' }}">
           </div>
         </div>
 
@@ -36,7 +36,7 @@
                 <small class="text-muted">Minimize animations and transitions.</small>
               </div>
               <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" name="reduceMotion" value="1" {{ auth()->user()->reduceMotion ? 'checked' : '' }}>
+                <input class="form-check-input" type="checkbox" name="reduceMotion" value="1" {{ auth()->user()?->reduceMotion ? 'checked' : '' }}>
               </div>
             </div>
           </div>

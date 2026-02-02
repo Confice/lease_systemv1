@@ -258,7 +258,7 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Get summary statistics
+     * Get summary statistics (total revenue, monthly revenue, active contracts, total tenants)
      */
     public function summaryStats()
     {
@@ -267,59 +267,33 @@ class AnalyticsController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Total revenue (all time)
-        $totalRevenue = Bill::where('status', 'Paid')
+        // Total revenue (all time) - sum of paid bills
+        $totalRevenue = (float) Bill::where('status', 'Paid')
             ->whereNotNull('datePaid')
             ->whereNull('deleted_at')
             ->sum('amount');
 
         // Revenue this month
-        $monthlyRevenue = Bill::where('status', 'Paid')
+        $monthlyRevenue = (float) Bill::where('status', 'Paid')
             ->whereNotNull('datePaid')
             ->whereMonth('datePaid', now()->month)
             ->whereYear('datePaid', now()->year)
             ->whereNull('deleted_at')
             ->sum('amount');
 
-        // Revenue this year
-        $yearlyRevenue = Bill::where('status', 'Paid')
-            ->whereNotNull('datePaid')
-            ->whereYear('datePaid', now()->year)
-            ->whereNull('deleted_at')
-            ->sum('amount');
-
-        // Average monthly revenue (last 12 months)
-        $avgMonthlyRevenue = Bill::where('status', 'Paid')
-            ->whereNotNull('datePaid')
-            ->where('datePaid', '>=', now()->subMonths(12))
-            ->whereNull('deleted_at')
-            ->selectRaw('AVG(monthly_total) as avg')
-            ->fromSub(function($query) {
-                $query->selectRaw('DATE_FORMAT(datePaid, "%Y-%m") as month, SUM(amount) as monthly_total')
-                    ->from('bills')
-                    ->where('status', 'Paid')
-                    ->whereNotNull('datePaid')
-                    ->where('datePaid', '>=', now()->subMonths(12))
-                    ->whereNull('deleted_at')
-                    ->groupBy('month');
-            }, 'monthly_revenue')
-            ->value('avg') ?? 0;
-
         // Total active contracts
-        $activeContracts = Contract::where('contractStatus', 'Active')
+        $activeContracts = (int) Contract::where('contractStatus', 'Active')
             ->whereNull('deleted_at')
             ->count();
 
-        // Total tenants
-        $totalTenants = User::where('role', 'Tenant')
+        // Total tenants (users with role Tenant, not soft-deleted)
+        $totalTenants = (int) User::where('role', 'Tenant')
             ->whereNull('deleted_at')
             ->count();
 
         return response()->json([
-            'totalRevenue' => number_format($totalRevenue, 2),
-            'monthlyRevenue' => number_format($monthlyRevenue, 2),
-            'yearlyRevenue' => number_format($yearlyRevenue, 2),
-            'avgMonthlyRevenue' => number_format($avgMonthlyRevenue, 2),
+            'totalRevenue' => number_format($totalRevenue, 2, '.', ''),
+            'monthlyRevenue' => number_format($monthlyRevenue, 2, '.', ''),
             'activeContracts' => $activeContracts,
             'totalTenants' => $totalTenants
         ]);
@@ -346,16 +320,13 @@ class AnalyticsController extends Controller
             $file = fopen('php://output', 'w');
             
             // Summary Statistics
-            fputcsv($file, ['ANALYTICS REPORT - ' . now()->format('F Y')]);
+            $summary = $this->getSummaryData();
+            fputcsv($file, ['ANALYTICS REPORT - ' . now()->format('F j, Y')]);
             fputcsv($file, []);
             fputcsv($file, ['SUMMARY STATISTICS']);
             fputcsv($file, ['Metric', 'Value']);
-            
-            $summary = $this->getSummaryData();
             fputcsv($file, ['Total Revenue', '₱' . $summary['totalRevenue']]);
-            fputcsv($file, ['Monthly Revenue', '₱' . $summary['monthlyRevenue']]);
-            fputcsv($file, ['Yearly Revenue', '₱' . $summary['yearlyRevenue']]);
-            fputcsv($file, ['Average Monthly Revenue', '₱' . $summary['avgMonthlyRevenue']]);
+            fputcsv($file, ['Monthly Revenue (This Month)', '₱' . $summary['monthlyRevenue']]);
             fputcsv($file, ['Active Contracts', $summary['activeContracts']]);
             fputcsv($file, ['Total Tenants', $summary['totalTenants']]);
             fputcsv($file, []);
@@ -417,60 +388,37 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Helper method to get summary data
+     * Helper: get summary data for CSV/PDF export
      */
     private function getSummaryData()
     {
-        $totalRevenue = Bill::where('status', 'Paid')
+        $totalRevenue = (float) Bill::where('status', 'Paid')
             ->whereNotNull('datePaid')
             ->whereNull('deleted_at')
             ->sum('amount');
 
-        $monthlyRevenue = Bill::where('status', 'Paid')
+        $monthlyRevenue = (float) Bill::where('status', 'Paid')
             ->whereNotNull('datePaid')
             ->whereMonth('datePaid', now()->month)
             ->whereYear('datePaid', now()->year)
             ->whereNull('deleted_at')
             ->sum('amount');
 
-        $yearlyRevenue = Bill::where('status', 'Paid')
-            ->whereNotNull('datePaid')
-            ->whereYear('datePaid', now()->year)
-            ->whereNull('deleted_at')
-            ->sum('amount');
-
-        $avgMonthlyRevenue = Bill::where('status', 'Paid')
-            ->whereNotNull('datePaid')
-            ->where('datePaid', '>=', now()->subMonths(12))
-            ->whereNull('deleted_at')
-            ->selectRaw('AVG(monthly_total) as avg')
-            ->fromSub(function($query) {
-                $query->selectRaw('DATE_FORMAT(datePaid, "%Y-%m") as month, SUM(amount) as monthly_total')
-                    ->from('bills')
-                    ->where('status', 'Paid')
-                    ->whereNotNull('datePaid')
-                    ->where('datePaid', '>=', now()->subMonths(12))
-                    ->whereNull('deleted_at')
-                    ->groupBy('month');
-            }, 'monthly_revenue')
-            ->value('avg') ?? 0;
-
-        $activeContracts = Contract::where('contractStatus', 'Active')
+        $activeContracts = (int) Contract::where('contractStatus', 'Active')
             ->whereNull('deleted_at')
             ->count();
 
-        $totalTenants = User::where('role', 'Tenant')
+        $totalTenants = (int) User::where('role', 'Tenant')
             ->whereNull('deleted_at')
             ->count();
 
         return [
             'totalRevenue' => number_format($totalRevenue, 2),
             'monthlyRevenue' => number_format($monthlyRevenue, 2),
-            'yearlyRevenue' => number_format($yearlyRevenue, 2),
-            'avgMonthlyRevenue' => number_format($avgMonthlyRevenue, 2),
             'activeContracts' => $activeContracts,
             'totalTenants' => $totalTenants
         ];
     }
+
 }
 

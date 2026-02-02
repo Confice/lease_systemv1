@@ -6,7 +6,7 @@
 <div class="mb-4">
     <h6 class="mb-1">{{ \Carbon\Carbon::now()->format('l, M d, Y') }}</h6>
     <h4 class="fw-bold">
-        Good day, {{ auth()->user()->firstName ?? 'Tenant' }}!
+        Good day, {{ auth()->user()?->firstName ?? 'Tenant' }}!
     </h4>
 </div>
 <hr class="my-4">

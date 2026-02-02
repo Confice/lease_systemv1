@@ -34,6 +34,20 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Debug-only: verify basic Blade rendering (no auth)
+if (config('app.debug')) {
+    Route::get('/__render-check-public', function () {
+        $html = view('tenants.__render_check', [
+            'userId' => null,
+            'role' => 'PUBLIC',
+            'email' => null,
+            'time' => now()->toDateTimeString(),
+        ])->render();
+
+        return response($html, 200)->header('X-Rendered-View', 'tenants.__render_check');
+    })->name('render_check.public');
+}
+
 // =======================
 // Authentication Routes
 // =======================
@@ -101,7 +115,6 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     
     Route::get('/stalls/{stall}/edit', [StallController::class, 'edit'])->name('admins.stalls.edit');
     Route::put('/stalls/{stall}', [StallController::class, 'update'])->name('admins.stalls.update');
-    Route::delete('/stalls/{stall}', [StallController::class, 'destroy'])->name('admins.stalls.destroy');
     Route::get('/stalls/{stall}', [StallController::class, 'show'])->name('admins.stalls.show');
 
     // Marketplace Management
@@ -197,6 +210,24 @@ Route::middleware(['auth'])->group(function() {
 
     // Tenant Dashboard
     Route::middleware(['role:Tenant'])->group(function() {
+        // Debug-only: verify Blade view rendering for tenant routes
+        if (config('app.debug')) {
+            Route::get('/tenants/__render-check', function () {
+                $user = Auth::user();
+                $html = view('tenants.__render_check', [
+                    'userId' => $user?->id,
+                    'role' => $user?->role,
+                    'email' => $user?->email,
+                    'time' => now()->toDateTimeString(),
+                ])->render();
+
+                return response($html, 200)
+                    ->header('X-Rendered-View', 'tenants.__render_check')
+                    ->header('X-Auth-Id', (string) ($user?->id ?? ''))
+                    ->header('X-Auth-Role', (string) ($user?->role ?? ''));
+            })->name('tenants.render_check');
+        }
+
         Route::get('/tenants/dashboard', [DashboardController::class, 'tenantIndex'])->name('tenants.dashboard');
         Route::get('/tenants/dashboard/stats', [DashboardController::class, 'tenantStats'])->name('tenants.dashboard.stats');
 
