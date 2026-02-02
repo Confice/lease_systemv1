@@ -85,6 +85,10 @@
     </div>
 </div>
 
+<div id="tenantEmptyState" class="alert alert-info d-none">
+    Your dashboard is empty right now. Once you have an active lease or bills, the summaries will appear here.
+</div>
+
 @push('scripts')
 <script>
 $(document).ready(function() {
@@ -97,6 +101,14 @@ $(document).ready(function() {
             $('#upcomingBills').text(response.upcomingBills);
             $('#overdueBills').text(response.overdueBills);
             $('#pendingAmount').text('₱' + parseFloat(response.pendingAmount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+
+            const hasData = Number(response.activeLeases) > 0
+                || Number(response.upcomingBills) > 0
+                || Number(response.overdueBills) > 0
+                || parseFloat(response.pendingAmount) > 0;
+            if (!hasData) {
+                $('#tenantEmptyState').removeClass('d-none');
+            }
         },
         error: function() {
             console.error('Failed to load dashboard statistics');

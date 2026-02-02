@@ -16,6 +16,7 @@ use App\Http\Controllers\ContractController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TenantAccountController;
 use App\Models\Feedback;
 
 // =======================
@@ -132,6 +133,7 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     Route::get('/archived-items', [ArchivedItemsController::class, 'index'])->name('admins.archived-items.index');
     Route::get('/archived-items/data', [ArchivedItemsController::class, 'data'])->name('admins.archived-items.data');
     Route::post('/archived-items/restore', [ArchivedItemsController::class, 'restore'])->name('admins.archived-items.restore');
+    Route::get('/archived-items/export/csv', [ArchivedItemsController::class, 'exportCsv'])->name('admins.archived-items.export.csv');
 
     // Prospective Tenants (Contracts moved here)
     Route::get('/tenants/prospective', [ContractController::class, 'index'])->name('admins.prospective-tenants.index');
@@ -140,6 +142,8 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     Route::get('/tenants/prospective/{stall}/applications/data', [ContractController::class, 'applicationsData'])->name('admins.prospective-tenants.applications.data');
     Route::get('/tenants/prospective/applications/{application}/details', [ContractController::class, 'applicationDetails'])->name('admins.prospective-tenants.application.details');
     Route::post('/tenants/prospective/applications/{application}/schedule-presentation', [ContractController::class, 'schedulePresentation'])->name('admins.prospective-tenants.schedule-presentation');
+    Route::post('/tenants/prospective/applications/{application}/approve', [ContractController::class, 'approveApplication'])->name('admins.prospective-tenants.approve');
+    Route::post('/tenants/prospective/applications/{application}/reject', [ContractController::class, 'rejectApplication'])->name('admins.prospective-tenants.reject');
     
     // Tenant Feedback (Admin view, detail & archive)
     Route::get('/tenant-feedback', [FeedbackController::class, 'adminIndex'])->name('admins.feedback.index');
@@ -151,6 +155,8 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     Route::get('/admins/bills/data', [BillController::class, 'adminData'])->name('admins.bills.data');
     Route::get('/admins/bills/{bill}/update-status', [BillController::class, 'showUpdateStatusForm'])->name('admins.bills.show-update-status');
     Route::put('/admins/bills/{bill}/status', [BillController::class, 'updateStatus'])->name('admins.bills.update-status');
+    Route::post('/admins/bills/{bill}/archive', [BillController::class, 'archive'])->name('admins.bills.archive');
+    Route::delete('/admins/bills/{bill}', [BillController::class, 'destroy'])->name('admins.bills.destroy');
     Route::post('/admins/bills/generate', [BillController::class, 'generateMonthlyBills'])->name('admins.bills.generate');
 
     // Leases Management
@@ -161,6 +167,7 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     Route::post('/admins/leases/{contract}/renew', [ContractController::class, 'renew'])->name('admins.leases.renew');
     Route::get('/admins/leases/{contract}/terminate', [ContractController::class, 'showTerminateForm'])->name('admins.leases.show-terminate');
     Route::post('/admins/leases/{contract}/terminate', [ContractController::class, 'terminate'])->name('admins.leases.terminate');
+    Route::post('/admins/leases/{contract}/archive', [ContractController::class, 'archive'])->name('admins.leases.archive');
 });
 
 // =======================
@@ -228,6 +235,12 @@ Route::middleware(['auth'])->group(function() {
         // Tenant Leases
         Route::get('/leases', [ContractController::class, 'tenantLeasesIndex'])->name('tenants.leases.index');
         Route::get('/leases/data', [ContractController::class, 'tenantLeasesData'])->name('tenants.leases.data');
+
+        // Tenant Profile & Settings
+        Route::get('/tenants/profile', [TenantAccountController::class, 'profile'])->name('tenants.profile');
+        Route::get('/tenants/settings', [TenantAccountController::class, 'settings'])->name('tenants.settings');
+        Route::put('/tenants/profile', [TenantAccountController::class, 'updateProfile'])->name('tenants.profile.update');
+        Route::post('/tenants/settings', [TenantAccountController::class, 'updateSettings'])->name('tenants.settings.update');
     });
 
     // Add more tenant routes here

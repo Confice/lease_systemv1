@@ -33,7 +33,7 @@
 
   /* Table width and overflow control */
   .table-responsive {
-    overflow-x: auto;
+    overflow-x: visible;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -111,25 +111,18 @@
   }
 
   /* Hide less important columns on smaller screens */
-  @media (max-width: 1400px) {
-    #leasesTable th:nth-child(5),
-    #leasesTable td:nth-child(5) {
-      display: none;
-    }
-  }
-
   @media (max-width: 1200px) {
-    #leasesTable th:nth-child(7),
-    #leasesTable td:nth-child(7),
-    #leasesTable th:nth-child(8),
-    #leasesTable td:nth-child(8) {
+    #leasesTable th:nth-child(9),
+    #leasesTable td:nth-child(9) {
       display: none;
     }
   }
 
   @media (max-width: 992px) {
-    #leasesTable th:nth-child(6),
-    #leasesTable td:nth-child(6) {
+    #leasesTable th:nth-child(7),
+    #leasesTable td:nth-child(7),
+    #leasesTable th:nth-child(8),
+    #leasesTable td:nth-child(8) {
       display: none;
     }
   }
@@ -181,8 +174,7 @@
       margin-bottom: 0.5rem;
     }
     
-    #statusFilter,
-    #btnGenerateBills {
+    #statusTabs .status-tab {
       width: 100%;
     }
   }
@@ -205,16 +197,20 @@
   </div>
 
   <div class="card-body">
+    <div class="d-flex flex-wrap gap-2 mb-3" id="statusTabs">
+      <button type="button" class="btn btn-outline-primary status-tab active" data-status="Active">
+        Active <span class="badge bg-primary ms-1">{{ $statusCounts['Active'] ?? 0 }}</span>
+      </button>
+      <button type="button" class="btn btn-outline-warning status-tab" data-status="Expiring">
+        Expiring <span class="badge bg-warning text-dark ms-1">{{ $statusCounts['Expiring'] ?? 0 }}</span>
+      </button>
+      <button type="button" class="btn btn-outline-secondary status-tab" data-status="Terminated">
+        Terminated <span class="badge bg-secondary ms-1">{{ $statusCounts['Terminated'] ?? 0 }}</span>
+      </button>
+    </div>
+
     <!-- Action Buttons Group (aligned with DataTables length selector) -->
     <div class="d-flex align-items-center gap-2" id="actionButtonsGroup" style="display: none !important;">
-      <!-- Status Filter -->
-      <select id="statusFilter" class="form-select" style="max-width: 200px;">
-        <option value="all">All Status</option>
-        <option value="Active">Active</option>
-        <option value="Expiring">Expiring</option>
-        <option value="Terminated">Terminated</option>
-      </select>
-
       <!-- Export Dropdown -->
       <div class="dropdown">
         <button class="btn btn-label-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -340,12 +336,21 @@
 <script>
 $(function(){
   $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+
+  const statusParam = new URLSearchParams(window.location.search).get('status');
+  if (statusParam) {
+    const $tab = $(`#statusTabs .status-tab[data-status="${statusParam}"]`);
+    if ($tab.length) {
+      $('#statusTabs .status-tab').removeClass('active');
+      $tab.addClass('active');
+    }
+  }
   
   var table = $('#leasesTable').DataTable({
     ajax: {
       url: "{{ route('admins.leases.data') }}",
       data: function(d) {
-        d.status = $('#statusFilter').val();
+        d.status = $('#statusTabs .status-tab.active').data('status');
         d.search = $('#leasesSearch').val();
       }
     },
@@ -428,6 +433,7 @@ $(function(){
         if (data.canTerminate) {
           html += `<a href="/admins/leases/${data.contractID}/terminate" class="btn btn-sm btn-outline-danger" title="Terminate"><i class="bx bx-x"></i></a>`;
         }
+        html += `<button class="btn btn-sm btn-outline-warning archive-contract" data-id="${data.contractID}" title="Archive"><i class="bx bx-archive"></i></button>`;
         html += '</div>';
         
         if (type === 'display') {
@@ -445,7 +451,16 @@ $(function(){
     language: { lengthMenu: "Show _MENU_ entries" },
     lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
     columnDefs: [
-      { targets: '_all', className: 'text-nowrap' }
+      { targets: -1, className: 'text-nowrap', responsivePriority: 1 },
+      { targets: 9, responsivePriority: 2 },
+      { targets: 2, responsivePriority: 3 },
+      { targets: 1, responsivePriority: 4 },
+      { targets: 3, responsivePriority: 5 },
+      { targets: 4, responsivePriority: 6 },
+      { targets: 5, responsivePriority: 7 },
+      { targets: 6, responsivePriority: 8 },
+      { targets: 7, responsivePriority: 9 },
+      { targets: 8, responsivePriority: 10 }
     ],
   });
 
@@ -513,8 +528,10 @@ $(function(){
     table.ajax.reload();
   });
 
-  // Status filter
-  $('#statusFilter').on('change', function() {
+  // Status tabs
+  $('#statusTabs').on('click', '.status-tab', function() {
+    $('#statusTabs .status-tab').removeClass('active');
+    $(this).addClass('active');
     table.ajax.reload();
   });
 
@@ -670,6 +687,48 @@ $(function(){
       }
     });
   });
+
+  // Archive contract
+  $(document).on('click', '.archive-contract', function() {
+    const contractId = $(this).data('id');
+    Swal.fire({
+      title: 'Archive Contract?',
+      text: 'This will move the contract to archived items.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f0ad4e',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, archive'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: "{{ route('admins.leases.archive', ':id') }}".replace(':id', contractId),
+          method: 'POST',
+          data: { _token: $('meta[name="csrf-token"]').attr('content') },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Archived',
+              text: response.message || 'Contract archived.',
+              toast: true,
+              position: 'top',
+              showConfirmButton: false,
+              timer: 2000
+            });
+            table.ajax.reload();
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error!',
+              text: xhr.responseJSON?.message || 'Failed to archive contract.'
+            });
+          }
+        });
+      }
+    });
+  });
+
 });
 </script>
 @endpush

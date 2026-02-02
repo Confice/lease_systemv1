@@ -136,6 +136,18 @@ class AuthController extends Controller
     // Show login form
     public function showLoginForm()
     {
+        if (Auth::check()) {
+            $user = Auth::user();
+            $redirect = match($user->role) {
+                'Tenant' => route('tenants.dashboard'),
+                'Lease Manager' => route('admins.dashboard'),
+                default => null
+            };
+
+            if ($redirect) {
+                return redirect($redirect);
+            }
+        }
         return view('auth.login');
     }
 

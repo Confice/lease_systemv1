@@ -198,6 +198,8 @@ $(function(){
           html += `<button class="btn btn-sm btn-outline-primary view-proof" data-url="${data.paymentProofUrl}" title="View Proof"><i class="bx bx-image"></i></button>`;
         }
         html += `<a href="/admins/bills/${data.billID}/update-status" class="btn btn-sm btn-outline-secondary" title="Update Status"><i class="bx bx-edit"></i></a>`;
+        html += `<button class="btn btn-sm btn-outline-warning archive-bill" data-id="${data.billID}" title="Archive"><i class="bx bx-archive"></i></button>`;
+        html += `<button class="btn btn-sm btn-outline-danger delete-bill" data-id="${data.billID}" title="Delete"><i class="bx bx-trash"></i></button>`;
         html += '</div>';
         return html;
       }}
@@ -379,6 +381,88 @@ $(function(){
               title: 'Error!',
               text: xhr.responseJSON?.message || 'Failed to generate bills.',
               animation: false
+            });
+          }
+        });
+      }
+    });
+  });
+
+  // Archive bill
+  $(document).on('click', '.archive-bill', function() {
+    const billId = $(this).data('id');
+    Swal.fire({
+      title: 'Archive Bill?',
+      text: 'This will move the bill to archived items.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f0ad4e',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, archive'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: "{{ route('admins.bills.archive', ':id') }}".replace(':id', billId),
+          method: 'POST',
+          data: { _token: $('meta[name="csrf-token"]').attr('content') },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Archived',
+              text: response.message || 'Bill archived.',
+              toast: true,
+              position: 'top',
+              showConfirmButton: false,
+              timer: 2000
+            });
+            table.ajax.reload();
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error!',
+              text: xhr.responseJSON?.message || 'Failed to archive bill.'
+            });
+          }
+        });
+      }
+    });
+  });
+
+  // Delete bill permanently
+  $(document).on('click', '.delete-bill', function() {
+    const billId = $(this).data('id');
+    Swal.fire({
+      title: 'Delete Bill Permanently?',
+      text: 'This cannot be undone.',
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, delete'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: "{{ route('admins.bills.destroy', ':id') }}".replace(':id', billId),
+          method: 'DELETE',
+          data: { _token: $('meta[name="csrf-token"]').attr('content') },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Deleted',
+              text: response.message || 'Bill deleted.',
+              toast: true,
+              position: 'top',
+              showConfirmButton: false,
+              timer: 2000
+            });
+            table.ajax.reload();
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error!',
+              text: xhr.responseJSON?.message || 'Failed to delete bill.'
             });
           }
         });

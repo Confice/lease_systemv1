@@ -88,6 +88,12 @@
     background-color: rgba(253, 126, 20, 0.15);
     color: #fd7e14;
   }
+
+  /* APPROVED - Any shade of green */
+  .status-approved {
+    background-color: rgba(25, 135, 84, 0.15);
+    color: #198754;
+  }
   
   /* WITHDRAWN - Any shade of gray */
   .status-withdrawn {
@@ -370,6 +376,7 @@ $(function(){
       'Pending Submission': 'status-pending-submission',
       'Proposal Rejected': 'status-proposal-rejected',
       'Requirements Received': 'status-requirements-received',
+      'Approved': 'status-approved',
       'Withdrawn': 'status-withdrawn'
     };
     return statusMap[status] || 'status-proposal-received';

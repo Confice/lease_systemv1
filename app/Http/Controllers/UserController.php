@@ -77,7 +77,7 @@ class UserController extends Controller
 
             DB::beginTransaction();
 
-            // Create user with PENDING status, no password yet
+            // Create user with ACTIVE status, no password yet
             $user = User::create([
                 'firstName'   => $validated['firstName'],
                 'middleName'  => $validated['middleName'],
@@ -85,7 +85,7 @@ class UserController extends Controller
                 'email'       => $validated['email'],
                 'password'    => null, 
                 'role'        => $validated['role'],
-                'userStatus'  => 'Pending',
+                'userStatus'  => 'Active',
                 'contactNo'   => $request->contactNo,
                 'homeAddress' => $request->homeAddress,
                 'birthDate'   => $request->birthDate,
@@ -263,6 +263,7 @@ class UserController extends Controller
 
             User::whereNull('deleted_at')->orderBy('id')->chunk(200, function ($users) use ($handle) {
                 foreach ($users as $u) {
+                    $createdAt = $u->created_at ? $u->created_at->format('Y-m-d H:i') : '';
                     fputcsv($handle, [
                         'USER-' . str_pad($u->id, 4, '0', STR_PAD_LEFT),
                         $u->firstName,
@@ -272,7 +273,7 @@ class UserController extends Controller
                         $u->role,
                         $u->userStatus,
                         $u->customReason ?? '-',
-                        optional($u->created_at)->toDateTimeString(),
+                        $createdAt !== '' ? "\t{$createdAt}" : '',
                     ]);
                 }
             });

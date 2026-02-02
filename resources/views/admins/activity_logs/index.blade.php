@@ -168,6 +168,7 @@ $(function(){
                 d.entity = $('#filterEntity').val();
                 d.dateFrom = $('#filterDateFrom').val();
                 d.dateTo = $('#filterDateTo').val();
+                d.search = { value: $('#activityLogsSearch').val() };
             }
         },
         columns: [

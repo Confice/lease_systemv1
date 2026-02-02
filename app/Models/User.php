@@ -29,7 +29,9 @@ class User extends Authenticatable
         'userStatus',           // account status
         'customReason',         // reason for deactivating account
         'email_verified_at',    // timestamp if email verified
-        'isFirstLogin'          // boolean for first login checks
+        'isFirstLogin',         // boolean for first login checks
+        'themePreference',      // ui theme preference
+        'reduceMotion'          // ui motion preference
     ];
 
     // attributes hidden when model is converted to arrays/JSON (for API responses)
@@ -42,7 +44,10 @@ class User extends Authenticatable
     protected $casts = [
         'birthDate' => 'date',            // Carbon date object
         'email_verified_at' => 'datetime',// DateTime
-        'isFirstLogin' => 'boolean'       // bool
+        'isFirstLogin' => 'boolean',      // bool
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'reduceMotion' => 'boolean'
     ];
 
     // -----------------------

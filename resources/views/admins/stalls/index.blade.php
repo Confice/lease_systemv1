@@ -451,7 +451,7 @@
 </div>
 
 <!-- Modal List of Requirements -->
-<div class="modal fade" id="requirementsModal" tabindex="-1" aria-labelledby="requirementsModalLabel" aria-hidden="true">
+<div class="modal fade requirements-modal" id="requirementsModal" tabindex="-1" aria-labelledby="requirementsModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header border-bottom">
@@ -627,6 +627,10 @@
     border-color: rgba(127, 146, 103, 0.4) !important;
     outline: none;
     box-shadow: 0 0 0 0.2rem rgba(127, 146, 103, 0.25) !important;
+  }
+
+  #requirementsModal .text-muted {
+    color: #201F23 !important;
   }
 </style>
 @endpush

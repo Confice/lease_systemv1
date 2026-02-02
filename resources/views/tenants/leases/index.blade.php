@@ -361,7 +361,11 @@ $(function(){
     scrollX: false,
     autoWidth: false,
     dom: 'lrtip',
-    language: { lengthMenu: "Show _MENU_ entries" },
+    language: {
+      lengthMenu: "Show _MENU_ entries",
+      emptyTable: "No leases yet. Once your lease is active, it will appear here.",
+      zeroRecords: "No matching leases found."
+    },
     lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
     columnDefs: [
       { targets: '_all', className: 'text-nowrap' }

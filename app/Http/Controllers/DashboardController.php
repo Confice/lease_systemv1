@@ -10,6 +10,7 @@ use App\Models\Feedback;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -23,7 +24,17 @@ class DashboardController extends Controller
         if (!$user || $user->role !== 'Lease Manager') {
             abort(403, 'Unauthorized');
         }
-        return view('admins.dashboard');
+        $stats = $this->getAdminStats();
+
+        return view('admins.dashboard', [
+            'dashboardStats' => [
+                'manageUsers' => $stats['manageUsers'],
+                'occupiedStalls' => $stats['occupiedStalls'],
+                'totalStalls' => $stats['totalStalls'],
+                'expiringContracts' => $stats['expiringContracts'],
+                'expectedRentCollected' => number_format($stats['expectedRentCollected'], 2),
+            ],
+        ]);
     }
 
     /**
@@ -36,20 +47,30 @@ class DashboardController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Active tenants (users with active contracts)
-        $activeTenants = User::where('role', 'Tenant')
-            ->where('userStatus', 'Active')
-            ->whereHas('contracts', function($query) {
-                $query->where('contractStatus', 'Active')
-                      ->whereNull('deleted_at');
-            })
-            ->whereNull('deleted_at')
-            ->count();
+        $stats = $this->getAdminStats();
 
-        // Vacant stalls
-        $vacantStalls = Stall::where('stallStatus', 'Vacant')
+        return response()->json([
+            'manageUsers' => $stats['manageUsers'],
+            'occupiedStalls' => $stats['occupiedStalls'],
+            'totalStalls' => $stats['totalStalls'],
+            'expiringContracts' => $stats['expiringContracts'],
+            'expectedRentCollected' => number_format($stats['expectedRentCollected'], 2),
+            'pendingBills' => $stats['pendingBills'],
+            'recentFeedback' => $stats['recentFeedback'],
+            'activeContracts' => $stats['activeContracts'],
+        ]);
+    }
+
+    private function getAdminStats(): array
+    {
+        // Manage users (all non-deleted users)
+        $manageUsers = User::whereNull('deleted_at')->count();
+
+        // Occupied stalls
+        $occupiedStalls = Stall::where('stallStatus', 'Occupied')
             ->whereNull('deleted_at')
             ->count();
+        $totalStalls = Stall::whereNull('deleted_at')->count();
 
         // Expiring contracts (within 30 days)
         $expiringContracts = Contract::where('contractStatus', 'Active')
@@ -59,10 +80,9 @@ class DashboardController extends Controller
             ->whereNull('deleted_at')
             ->count();
 
-        // Rent collected this month (Paid bills)
-        $rentCollected = Bill::where('status', 'Paid')
-            ->whereMonth('datePaid', now()->month)
-            ->whereYear('datePaid', now()->year)
+        // Expected rent collected (bills due this month)
+        $expectedRentCollected = Bill::whereMonth('dueDate', now()->month)
+            ->whereYear('dueDate', now()->year)
             ->whereNull('deleted_at')
             ->sum('amount');
 
@@ -72,25 +92,28 @@ class DashboardController extends Controller
             ->count();
 
         // Recent feedback (last 7 days)
-        $recentFeedback = Feedback::where('created_at', '>=', now()->subDays(7))
-            ->whereNull('archived_at')
-            ->whereNull('deleted_at')
-            ->count();
+        $recentFeedbackQuery = Feedback::where('created_at', '>=', now()->subDays(7))
+            ->whereNull('archived_at');
+        if (Schema::hasColumn('feedbacks', 'deleted_at')) {
+            $recentFeedbackQuery->whereNull('deleted_at');
+        }
+        $recentFeedback = $recentFeedbackQuery->count();
 
         // Total active contracts
         $activeContracts = Contract::where('contractStatus', 'Active')
             ->whereNull('deleted_at')
             ->count();
 
-        return response()->json([
-            'activeTenants' => $activeTenants,
-            'vacantStalls' => $vacantStalls,
+        return [
+            'manageUsers' => $manageUsers,
+            'occupiedStalls' => $occupiedStalls,
+            'totalStalls' => $totalStalls,
             'expiringContracts' => $expiringContracts,
-            'rentCollected' => number_format($rentCollected, 2),
+            'expectedRentCollected' => $expectedRentCollected,
             'pendingBills' => $pendingBills,
             'recentFeedback' => $recentFeedback,
             'activeContracts' => $activeContracts,
-        ]);
+        ];
     }
 
     /**

@@ -414,6 +414,105 @@ class ContractController extends Controller
     }
 
     /**
+     * Approve an application
+     */
+    public function approveApplication(Request $request, $application)
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        try {
+            $applicationModel = Application::where('applicationID', $application)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (!$applicationModel) {
+                return response()->json(['success' => false, 'message' => 'Application not found.'], 404);
+            }
+
+            if ($applicationModel->appStatus !== 'Presentation Scheduled') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only applications with "Presentation Scheduled" status can be approved.'
+                ], 400);
+            }
+
+            $applicationModel->update([
+                'appStatus' => 'Approved',
+            ]);
+
+            try {
+                ActivityLogService::logUpdate('applications', $applicationModel->applicationID, 'Application approved.');
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log application approval: " . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application approved successfully.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Application approve error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to approve application.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject an application
+     */
+    public function rejectApplication(Request $request, $application)
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        try {
+            $applicationModel = Application::where('applicationID', $application)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (!$applicationModel) {
+                return response()->json(['success' => false, 'message' => 'Application not found.'], 404);
+            }
+
+            if ($applicationModel->appStatus !== 'Presentation Scheduled') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only applications with "Presentation Scheduled" status can be rejected.'
+                ], 400);
+            }
+
+            $applicationModel->update([
+                'appStatus' => 'Proposal Rejected',
+                'remarks' => $request->input('reason')
+            ]);
+
+            try {
+                ActivityLogService::logUpdate('applications', $applicationModel->applicationID, 'Application rejected.');
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log application rejection: " . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application rejected successfully.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Application reject error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject application.'
+            ], 500);
+        }
+    }
+
+    /**
      * Display leases management page for admin
      */
     public function leasesIndex()
@@ -422,7 +521,18 @@ class ContractController extends Controller
         if (!$user || $user->role !== 'Lease Manager') {
             abort(403, 'Unauthorized');
         }
-        return view('admins.leases.index');
+        $statusCounts = Contract::whereNull('deleted_at')
+            ->select('contractStatus', DB::raw('COUNT(*) as total'))
+            ->groupBy('contractStatus')
+            ->pluck('total', 'contractStatus');
+
+        return view('admins.leases.index', [
+            'statusCounts' => [
+                'Active' => $statusCounts['Active'] ?? 0,
+                'Expiring' => $statusCounts['Expiring'] ?? 0,
+                'Terminated' => $statusCounts['Terminated'] ?? 0,
+            ],
+        ]);
     }
 
     /**
@@ -735,6 +845,47 @@ class ContractController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Archive a contract (soft delete)
+     */
+    public function archive($contract)
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        try {
+            $contract = Contract::where('contractID', $contract)
+                ->whereNull('deleted_at')
+                ->firstOrFail();
+
+            $contract->delete();
+
+            try {
+                ActivityLogService::logDelete('contracts', $contract->contractID, "Archived contract #{$contract->contractID}");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log contract archive activity: " . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Contract archived successfully.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Archive contract error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to archive contract.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Permanently delete a contract
+     */
+    // Delete action removed; use terminate + archive instead.
 
     /**
      * Display tenant's leases page

@@ -370,6 +370,7 @@ $(function(){
         if (d === 'Pending Submission') cls = 'bg-label-secondary';
         if (d === 'Proposal Rejected') cls = 'bg-label-danger';
         if (d === 'Requirements Received') cls = 'bg-label-success';
+        if (d === 'Approved') cls = 'bg-label-success';
         if (d === 'Withdrawn') cls = 'bg-label-secondary';
         const textColor = d === 'Withdrawn' ? ' style="color: #000000 !important;"' : '';
         return `<span class="badge rounded-pill ${cls}"${textColor}>${d}</span>`;
@@ -1687,12 +1688,43 @@ $(function(){
   $(document).on('click', '.btn-approve', function() {
     const applicationId = $(this).data('id');
     Swal.fire({
-      icon: 'info',
-      title: 'Approve Application',
-      text: 'Approve application functionality will be implemented.',
-      toast: true,
-      position: 'top',
-      timer: 2000
+      title: 'Approve Application?',
+      text: 'This will mark the application as Approved.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Approve',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#198754'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      $.ajax({
+        url: "{{ route('admins.prospective-tenants.approve', ':id') }}".replace(':id', applicationId),
+        method: 'POST',
+        data: { _token: $('meta[name="csrf-token"]').attr('content') },
+        success: function(response) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Approved',
+            text: response.message || 'Application approved.',
+            toast: true,
+            position: 'top',
+            timer: 3000,
+            showConfirmButton: false
+          });
+          table.ajax.reload();
+        },
+        error: function(xhr) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: xhr.responseJSON?.message || 'Failed to approve application.',
+            toast: true,
+            position: 'top',
+            timer: 3000,
+            showConfirmButton: false
+          });
+        }
+      });
     });
   });
 
@@ -1700,12 +1732,48 @@ $(function(){
   $(document).on('click', '.btn-reject', function() {
     const applicationId = $(this).data('id');
     Swal.fire({
-      icon: 'info',
-      title: 'Reject Application',
-      text: 'Reject application functionality will be implemented.',
-      toast: true,
-      position: 'top',
-      timer: 2000
+      title: 'Reject Application?',
+      input: 'text',
+      inputLabel: 'Reason (optional)',
+      inputPlaceholder: 'Add a short reason',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Reject',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#dc3545'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      $.ajax({
+        url: "{{ route('admins.prospective-tenants.reject', ':id') }}".replace(':id', applicationId),
+        method: 'POST',
+        data: {
+          reason: result.value || '',
+          _token: $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Rejected',
+            text: response.message || 'Application rejected.',
+            toast: true,
+            position: 'top',
+            timer: 3000,
+            showConfirmButton: false
+          });
+          table.ajax.reload();
+        },
+        error: function(xhr) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: xhr.responseJSON?.message || 'Failed to reject application.',
+            toast: true,
+            position: 'top',
+            timer: 3000,
+            showConfirmButton: false
+          });
+        }
+      });
     });
   });
 

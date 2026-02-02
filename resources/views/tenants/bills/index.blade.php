@@ -243,7 +243,11 @@ $(function(){
     pageLength: 10,
     responsive: true,
     dom: 'lrtip',
-    language: { lengthMenu: "Show _MENU_ entries" },
+    language: {
+      lengthMenu: "Show _MENU_ entries",
+      emptyTable: "No bills yet. Once bills are generated, they will appear here.",
+      zeroRecords: "No matching bills found."
+    },
     lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
   });
 

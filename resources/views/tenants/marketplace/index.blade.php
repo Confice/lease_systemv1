@@ -58,6 +58,11 @@
 @endpush
 
 @section('content')
+<div class="mb-3">
+  <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+    <i class="bx bx-arrow-back me-1"></i> Back
+  </button>
+</div>
 <!-- Centered Tabs -->
 <ul class="nav nav-pills marketplace-tabs" id="marketplaceTabs" role="tablist">
   <li class="nav-item" role="presentation">

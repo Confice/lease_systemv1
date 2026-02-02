@@ -51,7 +51,12 @@
     @stack('styles')
   </head>
 
-  <body>
+  @php
+    $user = Auth::user();
+    $themeClass = ($user && ($user->themePreference ?? 'light') === 'dark') ? 'dark-mode' : '';
+    $motionClass = ($user && ($user->reduceMotion ?? false)) ? 'reduce-motion' : '';
+  @endphp
+  <body class="{{ $themeClass }} {{ $motionClass }}">
     <!-- Layout wrapper -->
     <div class="layout-wrapper layout-content-navbar layout-menu-fixed">
       <div class="layout-container">
@@ -191,8 +196,8 @@
                       </a>
                     </li>
                     <li><div class="dropdown-divider"></div></li>
-                    <li><a class="dropdown-item" href="#"><i class="bx bx-user me-2"></i><span class="align-middle">My Profile</span></a></li>
-                    <li><a class="dropdown-item" href="#"><i class="bx bx-cog me-2"></i><span class="align-middle">Settings</span></a></li>
+                    <li><a class="dropdown-item" href="{{ route('tenants.profile') }}"><i class="bx bx-user me-2"></i><span class="align-middle">My Profile</span></a></li>
+                    <li><a class="dropdown-item" href="{{ route('tenants.settings') }}"><i class="bx bx-cog me-2"></i><span class="align-middle">Settings</span></a></li>
                     <li>
                       <a class="dropdown-item" href="{{ route('logout') }}"
                          onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
@@ -283,6 +288,41 @@
     
     <!-- Prevent dropdown items from turning white on click -->
     <style>
+      body.dark-mode {
+        background-color: #111315;
+        color: #E6E6E6;
+      }
+      body.dark-mode .card,
+      body.dark-mode .layout-navbar,
+      body.dark-mode .layout-menu {
+        background-color: #1a1d21 !important;
+        color: #E6E6E6;
+      }
+      body.dark-mode .text-muted {
+        color: #B3B3B3 !important;
+      }
+      body.dark-mode .table {
+        color: #E6E6E6;
+      }
+      body.dark-mode .table thead th {
+        background-color: #1f2328;
+        color: #E6E6E6;
+      }
+      body.dark-mode .form-control,
+      body.dark-mode .form-select {
+        background-color: #1f2328;
+        color: #E6E6E6;
+        border-color: #2b3036;
+      }
+      body.dark-mode .form-control::placeholder {
+        color: #9aa0a6;
+      }
+      body.reduce-motion * {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+      }
+
       .dropdown-item:active,
       .dropdown-item:focus,
       .dropdown-item.active {

@@ -15,8 +15,8 @@
       <!-- Login Form -->
       <div class="col-lg-6 col-md-8 col-sm-12">
         <div class="card p-4 shadow-sm rounded-3">
-          <h4 class="mb-3 text-center">🔑 Access Your Account</h4>
-          <p class="mb-4 text-center">Your personal dashboard is only a click away.</p>
+          <h4 class="mb-3 text-center"> Login</h4>
+          <p class="mb-4 text-center"></p>
 
           <form id="loginForm" action="{{ route('login.store') }}" method="POST" autocomplete="off" novalidate>
             @csrf

@@ -26,6 +26,14 @@
     font-weight: bold;
   }
   
+  .application-count-badge.is-empty {
+    background-color: #6c757d;
+  }
+  
+  .application-count-badge.has-applications {
+    background-color: #198754;
+  }
+  
   #stallsContainer {
     min-height: 400px;
   }
@@ -194,7 +202,7 @@ $(function(){
                       <h5 class="card-title mb-1">${stall.stallNo}</h5>
                       <small class="text-muted">${stall.formattedStallId}</small>
                     </div>
-                    <span class="application-count-badge">${stall.applicationCount} Application${stall.applicationCount !== 1 ? 's' : ''}</span>
+                    <span class="application-count-badge ${stall.applicationCount > 0 ? 'has-applications' : 'is-empty'}">${stall.applicationCount} Application${stall.applicationCount !== 1 ? 's' : ''}</span>
                   </div>
                   
                   <div class="mb-3">

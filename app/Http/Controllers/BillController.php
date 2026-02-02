@@ -164,6 +164,76 @@ class BillController extends Controller
     }
 
     /**
+     * Archive a bill (soft delete)
+     */
+    public function archive($bill)
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        try {
+            $bill = Bill::where('billID', $bill)->whereNull('deleted_at')->firstOrFail();
+            $bill->delete();
+
+            try {
+                ActivityLogService::logDelete('bills', $bill->billID, "Archived bill #{$bill->billID}");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log bill archive activity: " . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bill archived successfully.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Archive bill error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to archive bill.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Permanently delete a bill (force delete)
+     */
+    public function destroy($bill)
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        try {
+            $bill = Bill::withTrashed()->where('billID', $bill)->firstOrFail();
+            if ($bill->paymentProof) {
+                Storage::disk('public')->delete($bill->paymentProof);
+            }
+
+            $bill->forceDelete();
+
+            try {
+                ActivityLogService::logDelete('bills', $bill->billID, "Deleted bill #{$bill->billID} permanently");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log bill delete activity: " . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bill deleted permanently.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Delete bill error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete bill.'
+            ], 500);
+        }
+    }
+
+    /**
      * Display bills for tenant (their bills only)
      */
     public function tenantIndex()

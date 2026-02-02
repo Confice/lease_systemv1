@@ -10,34 +10,30 @@
             Good day, {{ auth()->user()->role ?? 'Administrator' }}!
         </h4>
     </div>
-    <!-- Temporary Add Marketplace Button -->
-    <a href="{{ route('admins.marketplaces.create') }}" class="btn btn-primary">
-        <i class="bx bx-plus me-1"></i> Add Marketplace
-    </a>
 </div>
 <hr class="my-4">
 
 <div class="row g-4 mb-4">
 
-    <!-- Active Tenants -->
+    <!-- Manage Users -->
     <div class="col-md-3 col-sm-6">
-        <a href="{{ url('/tenants/approved') }}" class="text-decoration-none">
+        <a href="{{ url('/users') }}" class="text-decoration-none">
             <div class="card shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="avatar flex-shrink-0 me-3 bg-label-primary rounded d-flex align-items-center justify-content-center">
                         <i class="bx bx-user text-primary fs-3"></i>
                     </div>
                     <div>
-                        <span class="d-block text-dark fw-semibold fs-5 mb-2">Active Tenants</span>
-                        <h1 class="fw-bold mb-3" id="activeTenants">-</h1>
-                        <small class="text-muted d-block fw-semibold">Currently operating tenants</small>
+                        <span class="d-block text-dark fw-semibold fs-5 mb-2">Manage Users</span>
+                        <h1 class="fw-bold mb-3" id="manageUsers">{{ $dashboardStats['manageUsers'] ?? 0 }}</h1>
+                        <small class="text-muted d-block fw-semibold">Total registered accounts</small>
                     </div>
                 </div>
             </div>
         </a>
     </div>
 
-    <!-- Vacant Stalls -->
+    <!-- Occupied Stalls -->
     <div class="col-md-3 col-sm-6">
         <a href="{{ url('/stalls') }}" class="text-decoration-none">
             <div class="card shadow-sm h-100">
@@ -46,9 +42,13 @@
                         <i class="bx bx-store text-warning fs-3"></i>
                     </div>
                     <div>
-                        <span class="d-block text-dark fw-semibold fs-5 mb-2">Vacant Stalls</span>
-                        <h1 class="fw-bold mb-3" id="vacantStalls">-</h1>
-                        <small class="text-muted d-block fw-semibold">Stalls with no ongoing contract</small>
+                        <span class="d-block text-dark fw-semibold fs-5 mb-2">Occupied Stalls</span>
+                        <h1 class="fw-bold mb-3" id="occupiedStalls">
+                            {{ ($dashboardStats['occupiedStalls'] ?? 0) . '/' . ($dashboardStats['totalStalls'] ?? 0) }}
+                        </h1>
+                        <small class="text-muted d-block fw-semibold">
+                            {{ ($dashboardStats['occupiedStalls'] ?? 0) . ' out of ' . ($dashboardStats['totalStalls'] ?? 0) . ' occupied' }}
+                        </small>
                     </div>
                 </div>
             </div>
@@ -57,7 +57,7 @@
 
     <!-- Expiring Contracts -->
     <div class="col-md-3 col-sm-6">
-        <a href="{{ url('/contracts') }}" class="text-decoration-none">
+        <a href="{{ route('admins.leases.index', ['status' => 'Expiring']) }}" class="text-decoration-none">
             <div class="card shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="avatar flex-shrink-0 me-3 bg-label-danger rounded d-flex align-items-center justify-content-center">
@@ -65,15 +65,15 @@
                     </div>
                     <div>
                         <span class="d-block text-dark fw-semibold fs-5 mb-2">Expiring Contracts</span>
-                        <h1 class="fw-bold mb-3" id="expiringContracts">-</h1>
-                        <small class="text-muted d-block fw-semibold">Expiring within 30 days</small>
+                        <h1 class="fw-bold mb-3" id="expiringContracts">{{ $dashboardStats['expiringContracts'] ?? 0 }}</h1>
+                        <small class="text-muted d-block fw-semibold">View expiring leases</small>
                     </div>
                 </div>
             </div>
         </a>
     </div>
 
-    <!-- Rent Collected -->
+    <!-- Expected Rent Collected -->
     <div class="col-md-3 col-sm-6">
         <a href="{{ url('/bills') }}" class="text-decoration-none">
             <div class="card shadow-sm h-100">
@@ -82,9 +82,9 @@
                         <i class="bx bx-credit-card text-success fs-3"></i>
                     </div>
                     <div>
-                        <span class="d-block text-dark fw-semibold fs-5 mb-2">Rent Collected</span>
-                        <h1 class="fw-bold mb-3" id="rentCollected">₱-</h1>
-                        <small class="text-muted d-block fw-semibold">Total rent collected this month</small>
+                        <span class="d-block text-dark fw-semibold fs-5 mb-2">Expected Rent Collected</span>
+                        <h1 class="fw-bold mb-3" id="expectedRentCollected">₱{{ $dashboardStats['expectedRentCollected'] ?? '0.00' }}</h1>
+                        <small class="text-muted d-block fw-semibold">Bills due this month</small>
                     </div>
                 </div>
             </div>
@@ -101,10 +101,13 @@ $(document).ready(function() {
         url: "{{ route('admins.dashboard.stats') }}",
         method: 'GET',
         success: function(response) {
-            $('#activeTenants').text(response.activeTenants);
-            $('#vacantStalls').text(response.vacantStalls);
+            $('#manageUsers').text(response.manageUsers);
+            const occupied = response.occupiedStalls ?? 0;
+            const total = response.totalStalls ?? 0;
+            $('#occupiedStalls').text(`${occupied}/${total}`);
+            $('#occupiedStalls').next('small').text(`${occupied} out of ${total} occupied`);
             $('#expiringContracts').text(response.expiringContracts);
-            $('#rentCollected').text('₱' + parseFloat(response.rentCollected).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $('#expectedRentCollected').text('₱' + parseFloat(response.expectedRentCollected).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
         },
         error: function() {
             console.error('Failed to load dashboard statistics');
