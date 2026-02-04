@@ -419,16 +419,7 @@ a:hover {
   border-color: #7F9267;
 }
 
-/* Sidebar toggle button - ensure visibility */
-.layout-navbar .layout-menu-toggle {
-  display: flex !important;
-}
-
-@media (max-width: 1199.98px) {
-  .layout-navbar .layout-menu-toggle {
-    display: flex !important;
-  }
-}
+/* Navbar 3-line hamburger is hidden - only circular arrow button is used (see sidebar-toggle.css) */
 
 /* Additional component overrides */
 .switch-input:checked ~ .switch-label {

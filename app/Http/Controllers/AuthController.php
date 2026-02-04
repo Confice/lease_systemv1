@@ -71,6 +71,12 @@ class AuthController extends Controller
                 'userStatus'  => 'Pending',
             ]);
 
+            try {
+                ActivityLogService::log('Create', 'users', $user->id, "User registered: {$user->email}", $user->id);
+            } catch (\Exception $e) {
+                Log::warning("Failed to log registration: " . $e->getMessage());
+            }
+
             $token = Str::random(64);
 
             DB::table('password_reset_tokens')->updateOrInsert(

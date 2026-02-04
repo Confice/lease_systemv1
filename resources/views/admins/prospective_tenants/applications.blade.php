@@ -134,10 +134,32 @@
   #schedulePresentationModal #presentationTime::placeholder {
     color: #6c757d !important;
   }
+  
+  /* View Notice Modal - ensure above backdrop and clickable */
+  #viewNoticeModal {
+    z-index: 1060 !important;
+  }
+  #viewNoticeModal.show,
+  #viewNoticeModal.modal.show {
+    z-index: 1060 !important;
+  }
+  #viewNoticeModal .modal-dialog,
+  #viewNoticeModal .modal-content {
+    pointer-events: auto !important;
+  }
+  /* When View Notice is open, keep its backdrop below the modal */
+  body:has(#viewNoticeModal.show) .modal-backdrop {
+    z-index: 1040 !important;
+  }
 </style>
 @endpush
 
 @section('content')
+<div class="mb-3">
+    <a href="{{ route('admins.prospective-tenants.index') }}" class="btn btn-outline-secondary">
+        <i class="bx bx-arrow-back me-1"></i> Back to Prospective Tenants
+    </a>
+</div>
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
     <!-- Search Bar -->
@@ -211,7 +233,12 @@
     <h5 class="offcanvas-title d-flex align-items-center fw-bold text-primary" id="drawerTitle">
       <i class="bx bx-file-blank me-2 fs-3"></i> VIEW SUBMISSION
     </h5>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    <div class="d-flex align-items-center gap-2">
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="offcanvas" aria-label="Back">
+        <i class="bx bx-arrow-back me-1"></i> Back
+      </button>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
   </div>
 
   <!-- Tabs outside drawer body -->
@@ -291,6 +318,26 @@
         <div id="modalFileContent" style="display: flex; align-items: center; justify-content: center; min-height: 60vh;">
           <!-- File content will be displayed here -->
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for View Notice -->
+<div class="modal fade" id="viewNoticeModal" tabindex="-1" aria-labelledby="viewNoticeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom" style="background-color: #EFEFEA !important;">
+        <h5 class="modal-title fw-bold text-primary" id="viewNoticeModalLabel">
+          <i class="bx bx-file me-2"></i> View Notice
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="viewNoticeModalBody">
+        <p class="text-muted mb-0">Loading...</p>
+      </div>
+      <div class="modal-footer border-top">
+        <button type="button" class="btn btn-label-primary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -387,6 +434,12 @@ $(function(){
                 <i class="bx bx-calendar me-1"></i> Schedule Presentation
               </a>
             </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a href="javascript:;" class="dropdown-item text-danger btn-delete-proposal" data-id="${d.applicationID}">
+                <i class="bx bx-trash me-1"></i> Delete Proposal
+              </a>
+            </li>
           `;
         } else if (status === 'Presentation Scheduled') {
           menuItems = `
@@ -433,12 +486,31 @@ $(function(){
                 <i class="bx bx-file me-1"></i> View Notice
               </a>
             </li>
+            <li>
+              <a href="javascript:;" class="dropdown-item text-secondary btn-reopen" data-id="${d.applicationID}">
+                <i class="bx bx-refresh me-1"></i> Reopen Submission
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a href="javascript:;" class="dropdown-item text-danger btn-delete-proposal" data-id="${d.applicationID}">
+                <i class="bx bx-trash me-1"></i> Delete Proposal
+              </a>
+            </li>
           `;
         } else if (status === 'Requirements Received') {
           menuItems = `
             <li>
               <a href="javascript:;" class="dropdown-item text-secondary btn-mark-tenant" data-id="${d.applicationID}">
                 <i class="bx bx-user-check me-1"></i> Mark as Tenant
+              </a>
+            </li>
+          `;
+        } else if (status === 'Approved') {
+          menuItems = `
+            <li>
+              <a href="javascript:;" class="dropdown-item text-warning btn-remove-tenant" data-id="${d.applicationID}">
+                <i class="bx bx-user-x me-1"></i> Remove tenant
               </a>
             </li>
           `;
@@ -449,10 +521,15 @@ $(function(){
                 <i class="bx bx-refresh me-1"></i> Reopen Submission
               </a>
             </li>
-            <li><hr class="dropdown-divider"></li>
             <li>
               <a href="javascript:;" class="dropdown-item text-secondary btn-view-notice" data-id="${d.applicationID}">
                 <i class="bx bx-file me-1"></i> View Notice
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a href="javascript:;" class="dropdown-item text-danger btn-delete-proposal" data-id="${d.applicationID}">
+                <i class="bx bx-trash me-1"></i> Delete Proposal
               </a>
             </li>
           `;
@@ -1816,18 +1893,57 @@ $(function(){
     });
   });
 
-  // View Notice
+  // View Notice - fetch application details and show notice (noticeType, noticeDate, remarks) in modal
   $(document).on('click', '.btn-view-notice', function() {
     const applicationId = $(this).data('id');
-    Swal.fire({
-      icon: 'info',
-      title: 'View Notice',
-      text: 'View notice functionality will be implemented.',
-      toast: true,
-      position: 'top',
-      timer: 2000
+    const detailsUrl = "{{ route('admins.prospective-tenants.application.details', ':id') }}".replace(':id', applicationId);
+    const $modal = $('#viewNoticeModal');
+    const $body = $('#viewNoticeModalBody');
+    $body.html('<p class="text-muted mb-0">Loading...</p>');
+    // Move modal to body so it is not trapped by stacking context (fixes greyed-out unclickable modal)
+    if ($modal.parent().length && !$modal.parent().is('body')) {
+      $modal.appendTo('body');
+    }
+    const viewNoticeModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('viewNoticeModal'));
+    viewNoticeModal.show();
+    $.ajax({
+      url: detailsUrl,
+      method: 'GET',
+      success: function(response) {
+        if (!response.success || !response.application) {
+          $body.html('<p class="text-danger mb-0">Could not load notice.</p>');
+          return;
+        }
+        const app = response.application;
+        const noticeType = app.noticeType || '';
+        const noticeDate = app.noticeDate ? new Date(app.noticeDate).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+        const remarks = app.remarks || '';
+        if (!noticeType && !noticeDate && !remarks) {
+          $body.html('<p class="text-muted mb-0">No notice on file for this application.</p>');
+          return;
+        }
+        let html = '';
+        if (noticeType) {
+          html += `<p class="mb-2"><strong>Notice type:</strong> ${escapeHtml(noticeType)}</p>`;
+        }
+        if (noticeDate) {
+          html += `<p class="mb-2"><strong>Date:</strong> ${escapeHtml(noticeDate)}</p>`;
+        }
+        if (remarks) {
+          html += `<p class="mb-0"><strong>Details / Reason:</strong></p><p class="mt-1 mb-0">${escapeHtml(remarks)}</p>`;
+        }
+        $body.html(html || '<p class="text-muted mb-0">No notice on file.</p>');
+      },
+      error: function() {
+        $body.html('<p class="text-danger mb-0">Failed to load notice. Please try again.</p>');
+      }
     });
   });
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
 
   // Mark as Tenant
   $(document).on('click', '.btn-mark-tenant', function() {
@@ -1842,16 +1958,132 @@ $(function(){
     });
   });
 
-  // Reopen Submission
+  // Reopen Submission - allow withdrawn application to be resubmitted
   $(document).on('click', '.btn-reopen', function() {
     const applicationId = $(this).data('id');
+    const reopenUrl = "{{ route('admins.prospective-tenants.reopen', ':id') }}".replace(':id', applicationId);
     Swal.fire({
-      icon: 'info',
-      title: 'Reopen Submission',
-      text: 'Reopen submission functionality will be implemented.',
-      toast: true,
-      position: 'top',
-      timer: 2000
+      title: 'Reopen submission?',
+      text: 'This will change the status to "Proposal Received" so the prospect can submit again.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#7F9267',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, reopen'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: reopenUrl,
+          method: 'POST',
+          headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Reopened',
+              text: response.message || 'Application reopened.',
+              toast: true,
+              position: 'top',
+              showConfirmButton: false,
+              timer: 2500
+            }).then(function() {
+              table.ajax.reload(null, false);
+            });
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to reopen application.'
+            });
+          }
+        });
+      }
+    });
+  });
+
+  // Delete Proposal - remove rejected/withdrawn application from the table
+  $(document).on('click', '.btn-delete-proposal', function() {
+    const applicationId = $(this).data('id');
+    const deleteUrl = "{{ route('admins.prospective-tenants.application.delete', ':id') }}".replace(':id', applicationId);
+    Swal.fire({
+      title: 'Delete proposal?',
+      text: 'This will permanently remove this application from the list. This action cannot be undone.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, delete'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: deleteUrl,
+          method: 'DELETE',
+          headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Deleted',
+              text: response.message || 'Proposal removed.',
+              toast: true,
+              position: 'top',
+              showConfirmButton: false,
+              timer: 2500
+            }).then(function() {
+              table.ajax.reload(null, false);
+            });
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to delete proposal.'
+            });
+          }
+        });
+      }
+    });
+  });
+
+  // Remove tenant - delete Approved application from table and archive linked contract
+  $(document).on('click', '.btn-remove-tenant', function() {
+    const applicationId = $(this).data('id');
+    const removeUrl = "{{ route('admins.prospective-tenants.application.remove-tenant', ':id') }}".replace(':id', applicationId);
+    Swal.fire({
+      title: 'Remove tenant?',
+      text: 'This will remove this application from the list and archive the lease for this stall if one exists. This action cannot be undone.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f0ad4e',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, remove'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: removeUrl,
+          method: 'POST',
+          headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Tenant removed',
+              text: response.message || 'Removed from the list.',
+              toast: true,
+              position: 'top',
+              showConfirmButton: false,
+              timer: 2500
+            }).then(function() {
+              table.ajax.reload(null, false);
+            });
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to remove tenant.'
+            });
+          }
+        });
+      }
     });
   });
 

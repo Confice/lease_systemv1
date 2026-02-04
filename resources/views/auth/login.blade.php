@@ -35,9 +35,8 @@
             <div class="mb-3">
               <label class="form-label">Password <span class="text-danger">*</span></label>
               <div class="input-group">
-                <span class="input-group-text"><i class="bx bx-lock"></i></span>
                 <input type="password" name="password" class="form-control" placeholder="••••••••">
-                <span class="input-group-text cursor-pointer toggle-password"><i class="bx bx-hide"></i></span>
+                <span class="input-group-text cursor-pointer toggle-password text-primary" style="color: #6B7A56 !important;"><i class="bx bx-hide"></i></span>
               </div>
               <div class="invalid-feedback d-block" data-error="password"></div>
                 

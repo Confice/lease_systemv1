@@ -85,9 +85,53 @@
   position: relative !important;
 }
 
-/* Hide the old navbar toggle */
-.layout-navbar .layout-menu-toggle {
-  display: none !important;
+/* Desktop: hide navbar arrow (use circular button on sidebar only) */
+@media (min-width: 1200px) {
+  .layout-navbar .layout-menu-toggle {
+    display: none !important;
+  }
+}
+
+/* Mobile/small: show arrow in navbar only (not inside transformed sidebar so it's always visible) */
+@media (max-width: 1199.98px) {
+  .layout-navbar .layout-menu-toggle {
+    display: flex !important;
+    align-items: center;
+    margin-right: 0.5rem;
+  }
+  .layout-navbar .navbar-menu-arrow-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    background-color: #fff !important;
+    border: 2px solid #d9dee3;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    color: #697a8d !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .layout-navbar .navbar-menu-arrow-btn:hover {
+    background-color: #f8f9fa !important;
+    border-color: #7F9267;
+    color: #7F9267 !important;
+    box-shadow: 0 4px 12px rgba(127, 146, 103, 0.15);
+  }
+  .layout-navbar .navbar-menu-arrow-btn i {
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: transform 0.2s ease;
+  }
+  /* When menu is open, arrow points left (close) */
+  .layout-wrapper:not(.layout-menu-collapsed) .layout-navbar .navbar-menu-arrow-btn i {
+    transform: rotate(180deg);
+  }
+  /* Hide sidebar circular button on mobile so only one arrow (navbar) shows */
+  .sidebar-toggle-btn {
+    display: none !important;
+  }
 }
 
 /* ============================================
@@ -322,16 +366,25 @@
 /* ============================================
    MOBILE RESPONSIVE
    ============================================ */
-/* On mobile, hide sidebar completely when collapsed */
+/* On mobile: match Sneat's behavior - menu visible when NOT collapsed, overlay when .show */
 @media (max-width: 1199.98px) {
+  /* When collapsed: menu off-screen */
   .layout-wrapper.layout-menu-collapsed .layout-menu {
     transform: translateX(-100%);
     width: 16.25rem !important;
   }
-  
   .layout-wrapper.layout-menu-collapsed .layout-page {
     margin-left: 0 !important;
     padding-left: 0 !important;
+  }
+  /* When NOT collapsed (menu open): show menu and overlay - Sneat uses .layout-menu-expanded, we use !collapsed + .show */
+  .layout-wrapper:not(.layout-menu-collapsed) .layout-menu {
+    transform: translate3d(0, 0, 0) !important;
+    z-index: 1110 !important; /* above topbar (1080) so menu overlaps navbar */
+  }
+  .layout-overlay.show {
+    display: block !important;
+    z-index: 1105 !important; /* above topbar (1080), below menu (1110) */
   }
 }
 
@@ -364,38 +417,10 @@
   transform: translateY(-50%) !important;
 }
 
-/* Ensure toggle works on mobile too */
-@media (max-width: 1199.98px) {
-  .sidebar-toggle-btn {
-    display: flex !important;
-    visibility: visible !important;
-  }
-  
-  .layout-wrapper.layout-menu-collapsed .sidebar-toggle-btn {
-    right: 10px;
-    left: auto;
-  }
-}
-
-/* Desktop styles - always show toggle */
+/* Desktop: always show circular toggle on sidebar */
 @media (min-width: 1200px) {
   .sidebar-toggle-btn {
     display: flex !important;
     visibility: visible !important;
-  }
-}
-
-/* Alternative position: Top right of sidebar */
-@media (max-width: 768px) {
-  .sidebar-toggle-btn {
-    top: 16px;
-    right: 16px;
-    transform: none;
-  }
-  
-  .layout-wrapper.layout-menu-collapsed .sidebar-toggle-btn {
-    top: 16px;
-    right: 16px;
-    transform: none;
   }
 }

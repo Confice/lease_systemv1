@@ -95,6 +95,12 @@ class FeedbackController extends Controller
             'archived_at' => now(),
         ]);
 
+        try {
+            \App\Services\ActivityLogService::logDelete('feedbacks', $feedback->feedbackID, "Archived feedback #{$feedback->feedbackID}");
+        } catch (\Exception $e) {
+            \Log::warning("Failed to log feedback archive activity: " . $e->getMessage());
+        }
+
         return redirect()
             ->route('admins.feedback.index')
             ->with('success', 'Feedback archived successfully.');
@@ -143,10 +149,16 @@ class FeedbackController extends Controller
             'comments'                     => 'nullable|string|max:2000',
         ]);
 
-        Feedback::create(array_merge($validated, [
+        $feedback = Feedback::create(array_merge($validated, [
             'contractID' => $activeContract->contractID,
             'user_id'    => $user->id,
         ]));
+
+        try {
+            \App\Services\ActivityLogService::logCreate('feedbacks', $feedback->feedbackID, "Feedback submitted (contract #{$activeContract->contractID}).");
+        } catch (\Exception $e) {
+            \Log::warning("Failed to log feedback create: " . $e->getMessage());
+        }
 
         return redirect()
             ->back()

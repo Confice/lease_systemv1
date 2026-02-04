@@ -245,6 +245,12 @@ class StallController extends Controller
 
             DB::commit();
 
+            try {
+                \App\Services\ActivityLogService::logCreate('stalls', $stall->stallID, "Stall created: #{$stall->stallID} ({$stall->stallNo})");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log stall create: " . $e->getMessage());
+            }
+
             return response()->json(['success' => true, 'message' => 'Stall added successfully!']);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
@@ -296,6 +302,12 @@ class StallController extends Controller
 
             DB::commit();
 
+            try {
+                \App\Services\ActivityLogService::logUpdate('stalls', $stall->stallID, "Stall #{$stall->stallID} updated.");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log stall update: " . $e->getMessage());
+            }
+
             return response()->json(['success' => true, 'message' => 'Stall updated successfully!']);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
@@ -316,6 +328,11 @@ class StallController extends Controller
     public function destroy(Stall $stall)
     {
         $stall->delete();
+        try {
+            \App\Services\ActivityLogService::logDelete('stalls', $stall->stallID, "Archived stall #{$stall->stallID}");
+        } catch (\Exception $e) {
+            \Log::warning("Failed to log stall archive activity: " . $e->getMessage());
+        }
         return response()->json(['success' => true, 'message' => 'Stall archived successfully.']);
     }
 
@@ -329,6 +346,14 @@ class StallController extends Controller
         $count = Stall::whereIn('stallID', $request->ids)
             ->whereNull('deleted_at')
             ->update(['deleted_at' => now()]);
+
+        foreach ($request->ids as $id) {
+            try {
+                \App\Services\ActivityLogService::logDelete('stalls', (int) $id, "Archived stall #{$id}");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log stall archive activity: " . $e->getMessage());
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -465,6 +490,12 @@ class StallController extends Controller
                 'sort_order' => $maxSortOrder + 1,
             ]);
 
+            try {
+                \App\Services\ActivityLogService::logCreate('requirements', $requirement->id, "Requirement created: {$requirement->requirement_name} ({$requirement->document_type})");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log requirement create: " . $e->getMessage());
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Requirement added successfully.',
@@ -561,6 +592,12 @@ class StallController extends Controller
             
             $requirement->update($updateData);
 
+            try {
+                \App\Services\ActivityLogService::logUpdate('requirements', $requirement->id, "Requirement #{$requirement->id} updated: {$requirement->requirement_name}");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log requirement update: " . $e->getMessage());
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Requirement updated successfully.',
@@ -584,7 +621,15 @@ class StallController extends Controller
     {
         try {
             $requirement = Requirement::whereNull('deleted_at')->findOrFail($id);
+            $name = $requirement->requirement_name;
+            $reqId = $requirement->id;
             $requirement->delete();
+
+            try {
+                \App\Services\ActivityLogService::logDelete('requirements', $reqId, "Requirement archived: {$name}");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log requirement delete: " . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,

@@ -224,6 +224,8 @@ class ContractController extends Controller
                     'appStatus' => $applicationModel->appStatus,
                     'dateApplied' => $applicationModel->dateApplied ? $applicationModel->dateApplied->format('Y-m-d H:i:s') : null,
                     'remarks' => $applicationModel->remarks,
+                    'noticeType' => $applicationModel->noticeType,
+                    'noticeDate' => $applicationModel->noticeDate ? $applicationModel->noticeDate->format('Y-m-d H:i:s') : null,
                 ],
                 'stall' => [
                     'stallID' => $stall->stallID,
@@ -371,6 +373,12 @@ class ContractController extends Controller
                 'remarks' => $request->presentation_time // Store time in remarks for email
             ]);
 
+            try {
+                ActivityLogService::logUpdate('applications', $applicationModel->applicationID, 'Presentation scheduled.');
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log schedule presentation: " . $e->getMessage());
+            }
+
             // Get marketplace information
             $marketplace = $applicationModel->stall->marketplace;
             $user = $applicationModel->user;
@@ -508,6 +516,172 @@ class ContractController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to reject application.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Reopen a withdrawn or rejected application so the prospect can resubmit / be scheduled again.
+     */
+    public function reopenApplication($application)
+    {
+        try {
+            $applicationModel = Application::where('applicationID', $application)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (!$applicationModel) {
+                return response()->json(['success' => false, 'message' => 'Application not found.'], 404);
+            }
+
+            if (!in_array($applicationModel->appStatus, ['Withdrawn', 'Proposal Rejected'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only withdrawn or rejected applications can be reopened.'
+                ], 400);
+            }
+
+            $applicationModel->update([
+                'appStatus' => 'Proposal Received',
+                'remarks' => null,
+                'noticeType' => null,
+                'noticeDate' => null,
+            ]);
+
+            try {
+                ActivityLogService::logUpdate('applications', $applicationModel->applicationID, 'Application reopened for resubmission.');
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log application reopen: " . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application reopened. The prospect can submit again.',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Application reopen error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reopen application.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete (soft-delete) an application. Allowed for Proposal Received, Proposal Rejected, and Withdrawn.
+     */
+    public function deleteApplication($application)
+    {
+        try {
+            $applicationModel = Application::where('applicationID', $application)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (!$applicationModel) {
+                return response()->json(['success' => false, 'message' => 'Application not found.'], 404);
+            }
+
+            if (!in_array($applicationModel->appStatus, ['Proposal Received', 'Proposal Rejected', 'Withdrawn'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only proposal received, rejected, or withdrawn applications can be deleted.'
+                ], 400);
+            }
+
+            $applicationModel->delete();
+
+            try {
+                ActivityLogService::logDelete('applications', $applicationModel->applicationID, 'Application (proposal) deleted from list.');
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log application delete: " . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Proposal removed from the list.',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Application delete error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete application.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove approved tenant: archive linked contract (if any) and soft-delete the application so it is removed from the table.
+     */
+    public function removeApprovedTenant($application)
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        try {
+            $applicationModel = Application::where('applicationID', $application)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (!$applicationModel) {
+                return response()->json(['success' => false, 'message' => 'Application not found.'], 404);
+            }
+
+            if ($applicationModel->appStatus !== 'Approved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only approved applications can be removed.',
+                ], 400);
+            }
+
+            // If application is linked to a contract, soft-delete that contract
+            if ($applicationModel->contractID) {
+                $contract = Contract::where('contractID', $applicationModel->contractID)
+                    ->whereNull('deleted_at')
+                    ->first();
+                if ($contract) {
+                    $contract->delete();
+                    try {
+                        ActivityLogService::logDelete('contracts', $contract->contractID, "Archived contract #{$contract->contractID} (removed approved tenant from application).");
+                    } catch (\Exception $e) {
+                        \Log::warning("Failed to log contract archive: " . $e->getMessage());
+                    }
+                }
+            } else {
+                // No contractID: find contract by user+stall and archive if exists
+                $contract = Contract::where('userID', $applicationModel->userID)
+                    ->where('stallID', $applicationModel->stallID)
+                    ->whereNull('deleted_at')
+                    ->first();
+                if ($contract) {
+                    $contract->delete();
+                    try {
+                        ActivityLogService::logDelete('contracts', $contract->contractID, "Archived contract #{$contract->contractID} (removed approved tenant from application).");
+                    } catch (\Exception $e) {
+                        \Log::warning("Failed to log contract archive: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Remove application from the table (soft-delete)
+            $applicationModel->delete();
+
+            try {
+                ActivityLogService::logDelete('applications', $applicationModel->applicationID, 'Approved tenant removed; application deleted from list.');
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log remove approved tenant: " . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tenant removed from the list.',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Remove approved tenant error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove tenant.',
             ], 500);
         }
     }
@@ -804,6 +978,11 @@ class ContractController extends Controller
                     $stall->update([
                         'stallStatus' => 'Vacant',
                     ]);
+                    try {
+                        ActivityLogService::logUpdate('stalls', $stall->stallID, "Stall #{$stall->stallID} set to Vacant (contract terminated).");
+                    } catch (\Exception $e) {
+                        \Log::warning("Failed to log stall status update: " . $e->getMessage());
+                    }
                 }
 
                 DB::commit();
@@ -867,6 +1046,30 @@ class ContractController extends Controller
                 ActivityLogService::logDelete('contracts', $contract->contractID, "Archived contract #{$contract->contractID}");
             } catch (\Exception $e) {
                 \Log::warning("Failed to log contract archive activity: " . $e->getMessage());
+            }
+
+            // Revert any Approved application for this tenant+stall so it no longer sticks in the table
+            $revertedApps = Application::where('userID', $contract->userID)
+                ->where('stallID', $contract->stallID)
+                ->where('appStatus', 'Approved')
+                ->whereNull('deleted_at')
+                ->get();
+            if ($revertedApps->isNotEmpty()) {
+                foreach ($revertedApps as $app) {
+                    try {
+                        ActivityLogService::logUpdate('applications', $app->applicationID, 'Application reverted to Proposal Received (contract archived).');
+                    } catch (\Exception $e) {
+                        \Log::warning("Failed to log application revert: " . $e->getMessage());
+                    }
+                }
+                Application::whereIn('applicationID', $revertedApps->pluck('applicationID'))
+                    ->update([
+                        'appStatus' => 'Proposal Received',
+                        'contractID' => null,
+                        'remarks' => null,
+                        'noticeType' => null,
+                        'noticeDate' => null,
+                    ]);
             }
 
             return response()->json([

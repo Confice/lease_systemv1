@@ -24,6 +24,10 @@
             <button id="btnRestoreSelected" class="btn btn-danger d-none" style="display: none !important;">
                 <i class="bx bx-undo me-1"></i> Restore
             </button>
+            <!-- Delete Permanently Button (hidden by default, shown when rows are selected) -->
+            <button id="btnDeletePermanently" class="btn btn-outline-danger d-none" style="display: none !important;">
+                <i class="bx bx-trash me-1"></i> Delete permanently
+            </button>
 
             <!-- Export Dropdown -->
             <div class="dropdown">
@@ -52,6 +56,9 @@
             <th>Reference ID</th>
             <th>Archived At</th>
             <th>Archived From</th>
+            <th>Archived By</th>
+            <th>Action</th>
+            <th class="text-center">Actions</th>
           </tr>
         </thead>
       </table>
@@ -98,6 +105,7 @@
     box-shadow: 0 0 0 0.2rem rgba(107, 122, 86, 0.5) !important;
     transform: none !important;
   }
+  .btn-archive-restore-one, .btn-archive-delete-one { padding: 0.25rem 0.5rem; }
 </style>
 @endpush
 
@@ -143,7 +151,13 @@ $(function(){
           hour12: true
         });
       }},
-      {data:'archived_from'}
+      {data:'archived_from'},
+      {data:'archived_by', defaultContent:'—'},
+      {data:'action', defaultContent:'Archived'},
+      {data:null, orderable:false, className:'text-center', render:function(d){
+        return `<button type="button" class="btn btn-sm btn-success btn-archive-restore-one" data-id="${d.id}" data-type="${d.module_type}" title="Restore"><i class="bx bx-undo"></i></button>
+                <button type="button" class="btn btn-sm btn-outline-danger btn-archive-delete-one" data-id="${d.id}" data-type="${d.module_type}" title="Delete permanently"><i class="bx bx-trash"></i></button>`;
+      }}
     ],
     order:[[4,'desc']], // Sort by Archived At descending (most recent first)
     pageLength:10,
@@ -268,8 +282,10 @@ $(function(){
     const checkedCount = $('.row-checkbox:checked').length;
     if (checkedCount > 0) {
       $('#btnRestoreSelected').removeClass('d-none').css('display', '');
+      $('#btnDeletePermanently').removeClass('d-none').css('display', '');
     } else {
       $('#btnRestoreSelected').addClass('d-none').css('display', 'none !important');
+      $('#btnDeletePermanently').addClass('d-none').css('display', 'none !important');
     }
   }
 
@@ -338,6 +354,173 @@ $(function(){
               icon: 'error',
               title: 'Error!',
               text: xhr.responseJSON?.message || 'Failed to restore items. Please try again.',
+              animation: false,
+              showClass: { popup: '' },
+              hideClass: { popup: '' }
+            });
+          }
+        });
+      }
+    });
+  });
+
+  // Single-row Restore
+  $(document).on('click', '.btn-archive-restore-one', function() {
+    const id = $(this).data('id');
+    const type = $(this).data('type');
+    Swal.fire({
+      title: 'Restore this item?',
+      text: 'The item will be moved back to its module.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#7F9267',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, restore',
+      animation: false,
+      showClass: { popup: '' },
+      hideClass: { popup: '' }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: "{{ route('admins.archived-items.restore') }}",
+          method: 'POST',
+          data: { items: [{ id: id, type: type }] },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Restored',
+              text: response.message || 'Item restored successfully.',
+              toast: true,
+              position: 'top',
+              showConfirmButton: false,
+              showCloseButton: true,
+              timer: 2000,
+              timerProgressBar: true
+            }).then(() => { table.ajax.reload(); });
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: xhr.responseJSON?.message || 'Failed to restore.',
+              animation: false,
+              showClass: { popup: '' },
+              hideClass: { popup: '' }
+            });
+          }
+        });
+      }
+    });
+  });
+
+  // Single-row Delete permanently
+  $(document).on('click', '.btn-archive-delete-one', function() {
+    const id = $(this).data('id');
+    const type = $(this).data('type');
+    Swal.fire({
+      title: 'Delete permanently?',
+      text: 'This cannot be undone. The item will be removed forever.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, delete permanently',
+      animation: false,
+      showClass: { popup: '' },
+      hideClass: { popup: '' }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: "{{ route('admins.archived-items.delete') }}",
+          method: 'POST',
+          data: { items: [{ id: id, type: type }] },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Deleted',
+              text: response.message || 'Item permanently deleted.',
+              toast: true,
+              position: 'top',
+              showConfirmButton: false,
+              showCloseButton: true,
+              timer: 2000,
+              timerProgressBar: true
+            }).then(() => { table.ajax.reload(); });
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: xhr.responseJSON?.message || 'Failed to delete.',
+              animation: false,
+              showClass: { popup: '' },
+              hideClass: { popup: '' }
+            });
+          }
+        });
+      }
+    });
+  });
+
+  // Bulk Delete permanently
+  $('#btnDeletePermanently').on('click', function() {
+    const checkedItems = [];
+    $('.row-checkbox:checked').each(function() {
+      checkedItems.push({
+        id: $(this).data('id'),
+        type: $(this).data('type')
+      });
+    });
+    if (checkedItems.length === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'No Selection',
+        text: 'Please select at least one item to delete.',
+        animation: false,
+        showClass: { popup: '' },
+        hideClass: { popup: '' }
+      });
+      return;
+    }
+    Swal.fire({
+      title: 'Delete permanently?',
+      text: `Are you sure you want to permanently delete ${checkedItems.length} item(s)? This cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, delete permanently',
+      animation: false,
+      showClass: { popup: '' },
+      hideClass: { popup: '' }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: "{{ route('admins.archived-items.delete') }}",
+          method: 'POST',
+          data: { items: checkedItems },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Deleted',
+              text: response.message || 'Items permanently deleted.',
+              toast: true,
+              position: 'top',
+              showConfirmButton: false,
+              showCloseButton: true,
+              timer: 2000,
+              timerProgressBar: true
+            }).then(() => {
+              selectedItems.clear();
+              $('#selectAllCheckbox').prop('checked', false);
+              table.ajax.reload();
+            });
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: xhr.responseJSON?.message || 'Failed to delete items.',
               animation: false,
               showClass: { popup: '' },
               hideClass: { popup: '' }

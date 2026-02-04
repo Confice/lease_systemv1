@@ -146,6 +146,7 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     Route::get('/archived-items', [ArchivedItemsController::class, 'index'])->name('admins.archived-items.index');
     Route::get('/archived-items/data', [ArchivedItemsController::class, 'data'])->name('admins.archived-items.data');
     Route::post('/archived-items/restore', [ArchivedItemsController::class, 'restore'])->name('admins.archived-items.restore');
+    Route::post('/archived-items/delete', [ArchivedItemsController::class, 'destroy'])->name('admins.archived-items.delete');
     Route::get('/archived-items/export/csv', [ArchivedItemsController::class, 'exportCsv'])->name('admins.archived-items.export.csv');
 
     // Prospective Tenants (Contracts moved here)
@@ -157,6 +158,9 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     Route::post('/tenants/prospective/applications/{application}/schedule-presentation', [ContractController::class, 'schedulePresentation'])->name('admins.prospective-tenants.schedule-presentation');
     Route::post('/tenants/prospective/applications/{application}/approve', [ContractController::class, 'approveApplication'])->name('admins.prospective-tenants.approve');
     Route::post('/tenants/prospective/applications/{application}/reject', [ContractController::class, 'rejectApplication'])->name('admins.prospective-tenants.reject');
+    Route::post('/tenants/prospective/applications/{application}/reopen', [ContractController::class, 'reopenApplication'])->name('admins.prospective-tenants.reopen');
+    Route::delete('/tenants/prospective/applications/{application}', [ContractController::class, 'deleteApplication'])->name('admins.prospective-tenants.application.delete');
+    Route::post('/tenants/prospective/applications/{application}/remove-tenant', [ContractController::class, 'removeApprovedTenant'])->name('admins.prospective-tenants.application.remove-tenant');
     
     // Tenant Feedback (Admin view, detail & archive)
     Route::get('/tenant-feedback', [FeedbackController::class, 'adminIndex'])->name('admins.feedback.index');

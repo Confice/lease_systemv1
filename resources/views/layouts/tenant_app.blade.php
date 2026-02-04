@@ -147,9 +147,9 @@
         <div class="layout-page">
           <!-- Navbar -->
           <nav class="layout-navbar container-fluid navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme" id="layout-navbar">
-            <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
-              <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
-                <i class="bx bx-menu bx-sm"></i>
+            <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none" id="navbar-menu-arrow-wrap">
+              <a class="nav-item nav-link px-0 me-xl-4 d-flex align-items-center justify-content-center navbar-menu-arrow-btn" href="javascript:void(0)" aria-label="Toggle menu">
+                <i class="bx bx-chevron-right"></i>
               </a>
             </div>
 

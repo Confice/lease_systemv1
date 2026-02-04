@@ -331,7 +331,7 @@
 $(function(){
   const marketplaceName = 'Bazaar';
   let stallsData = [];
-  let currentHoveredStall = {1: null, 2: null};
+  let currentOpenLevel = null; // which level has the stall info card visible (1 or 2)
   
   // Map stall names to levels and positions
   // Level 1: Two long horizontal rows separated by a central walkway
@@ -534,34 +534,33 @@ $(function(){
         `)
         .data('stall', stall)
         .data('level', level)
-        .on('mouseenter', function(e) {
-          currentHoveredStall[level] = $(this);
+        .on('click', function(e) {
+          e.stopPropagation();
+          if (currentOpenLevel !== null && currentOpenLevel !== level) {
+            hideStallInfo(currentOpenLevel);
+          }
+          currentOpenLevel = level;
           showStallInfo($(this), level);
-        })
-        .on('mouseleave', function() {
-          const $this = $(this);
-          setTimeout(function() {
-            // Only hide if not hovering over the stall or the card
-            if (currentHoveredStall[level] !== $this[0] && !$(`#stallInfoCardBazaar${level}:hover`).length) {
-              hideStallInfo(level);
-            }
-          }, 150);
         });
       
       grid.append(room);
     });
-    
-    $(`#stallInfoCardBazaar${level}`).on('mouseenter', function() {
-      // Keep it visible when hovering over the card
-    }).on('mouseleave', function() {
-      // Hide when leaving the card
-      setTimeout(function() {
-        if (!currentHoveredStall[level] || !$(currentHoveredStall[level]).is(':hover')) {
-          hideStallInfo(level);
-        }
-      }, 100);
-    });
   }
+  
+  // Close card when clicking outside any stall or the popup card
+  $(document).on('click', function(e) {
+    if ($(e.target).closest('.stall-room').length || $(e.target).closest('.stall-info-card').length) {
+      return;
+    }
+    if (currentOpenLevel !== null) {
+      hideStallInfo(currentOpenLevel);
+      currentOpenLevel = null;
+    }
+  });
+  
+  $(document).on('click', '.stall-info-card', function(e) {
+    e.stopPropagation();
+  });
   
   function showStallInfo($room, level) {
     const stall = $room.data('stall');
@@ -682,7 +681,6 @@ $(function(){
   }
   
   function hideStallInfo(level) {
-    currentHoveredStall[level] = null;
     const card = $(`#stallInfoCardBazaar${level}`);
     card.removeClass('show');
     card.css({

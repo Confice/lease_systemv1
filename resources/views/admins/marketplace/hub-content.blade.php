@@ -352,8 +352,7 @@
 $(function(){
   const marketplaceName = 'The Hub';
   let stallsData = [];
-  let currentHoveredStall = {1: null, 2: null};
-  const HIDE_DELAY = 500; // ms - delay before hiding stall info to improve hover stability
+  let currentOpenLevel = null; // which level has the stall info card visible (1 or 2)
   
   // Map stall names to levels and positions for The Hub
   // Level 1: L1-1, L1-2, L1-3, L1-4, L1-5
@@ -477,44 +476,35 @@ $(function(){
         `)
         .data('stall', stall)
         .data('level', level)
-        .on('mouseenter', function(e) {
-          currentHoveredStall[level] = $(this);
-          // Clear any pending hide timeout
-          if (window['stallCardTimeout' + level]) {
-            clearTimeout(window['stallCardTimeout' + level]);
-            window['stallCardTimeout' + level] = null;
+        .on('click', function(e) {
+          e.stopPropagation();
+          // If another level has card open, hide it
+          if (currentOpenLevel !== null && currentOpenLevel !== level) {
+            hideStallInfo(currentOpenLevel);
           }
+          currentOpenLevel = level;
           showStallInfo($(this), level);
-        })
-        .on('mouseleave', function() {
-          // Set timeout to hide card, but allow time to move to card
-          window['stallCardTimeout' + level] = setTimeout(function() {
-            hideStallInfo(level);
-          }, HIDE_DELAY);
         });
       
       grid.append(room);
     });
-    
-    // Handle card hover - keep visible when hovering over card
-    const card = $(`#stallInfoCardHub${level}`);
-    card.off('mouseenter mouseleave'); // Remove any existing handlers
-    card.on('mouseenter', function() {
-      // Clear hide timeout when mouse enters card
-      if (window['stallCardTimeout' + level]) {
-        clearTimeout(window['stallCardTimeout' + level]);
-        window['stallCardTimeout' + level] = null;
-      }
-    }).on('mouseleave', function() {
-      // Use the same delayed hide when leaving the card to avoid immediate disappearance
-      if (window['stallCardTimeout' + level]) {
-        clearTimeout(window['stallCardTimeout' + level]);
-      }
-      window['stallCardTimeout' + level] = setTimeout(function() {
-        hideStallInfo(level);
-      }, HIDE_DELAY);
-    });
   }
+  
+  // Close card when clicking outside any stall or the popup card
+  $(document).on('click', function(e) {
+    if ($(e.target).closest('.stall-room').length || $(e.target).closest('.stall-info-card').length) {
+      return;
+    }
+    if (currentOpenLevel !== null) {
+      hideStallInfo(currentOpenLevel);
+      currentOpenLevel = null;
+    }
+  });
+  
+  // Prevent clicks inside the card from closing it (card is already excluded above; this is extra safety)
+  $(document).on('click', '.stall-info-card', function(e) {
+    e.stopPropagation();
+  });
   
   function showStallInfo($room, level) {
     const stall = $room.data('stall');
@@ -743,13 +733,7 @@ $(function(){
   }
   
   function hideStallInfo(level) {
-    currentHoveredStall[level] = null;
     const card = $(`#stallInfoCardHub${level}`);
-    // Clear any pending timeouts for this level
-    if (window['stallCardTimeout' + level]) {
-      clearTimeout(window['stallCardTimeout' + level]);
-      window['stallCardTimeout' + level] = null;
-    }
     card.removeClass('show');
     card.css({
       display: 'none',

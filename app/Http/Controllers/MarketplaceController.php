@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Marketplace;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -30,7 +31,7 @@ class MarketplaceController extends Controller
                 $logoPath = $request->file('logo')->store('marketplace-logos', 'public');
             }
 
-            Marketplace::create([
+            $marketplace = Marketplace::create([
                 'marketplace' => $validated['marketplace'],
                 'marketplaceAddress' => $validated['marketplaceAddress'],
                 'logoPath' => $logoPath,
@@ -38,6 +39,12 @@ class MarketplaceController extends Controller
                 'telephoneNo' => $validated['telephoneNo'] ?? null,
                 'viberNo' => $validated['viberNo'] ?? null,
             ]);
+
+            try {
+                ActivityLogService::logCreate('marketplaces', $marketplace->marketplaceID, "Marketplace created: {$marketplace->marketplace}");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log marketplace create: " . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,

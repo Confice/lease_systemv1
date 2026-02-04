@@ -26,54 +26,77 @@ let menu, animate;
     const STORAGE_KEY = 'sidebar-collapsed-state';
     const layoutWrapper = document.querySelector('.layout-wrapper');
     
-    // Restore sidebar state from localStorage on page load
+    // Restore sidebar state from localStorage on page load (desktop only; mobile always starts collapsed)
     function restoreSidebarState() {
       if (!layoutWrapper) return;
       
-      const savedState = localStorage.getItem(STORAGE_KEY);
-      if (savedState === 'true') {
+      if (window.innerWidth < 1200) {
+        // Mobile/tablet: always start with sidebar hidden and no overlay
         layoutWrapper.classList.add('layout-menu-collapsed');
+        var overlay = document.querySelector('.layout-overlay');
+        if (overlay) overlay.classList.remove('show');
       } else {
-        layoutWrapper.classList.remove('layout-menu-collapsed');
+        const savedState = localStorage.getItem(STORAGE_KEY);
+        if (savedState === 'true') {
+          layoutWrapper.classList.add('layout-menu-collapsed');
+        } else {
+          layoutWrapper.classList.remove('layout-menu-collapsed');
+        }
       }
     }
 
     // Restore state immediately
     restoreSidebarState();
 
+    function toggleSidebarAndOverlay() {
+      if (!layoutWrapper) return;
+      layoutWrapper.classList.toggle('layout-menu-collapsed');
+      var isCollapsed = layoutWrapper.classList.contains('layout-menu-collapsed');
+      localStorage.setItem(STORAGE_KEY, isCollapsed ? 'true' : 'false');
+      if (window.innerWidth < 1200) {
+        var overlay = document.querySelector('.layout-overlay');
+        if (overlay) {
+          if (isCollapsed) {
+            overlay.classList.remove('show');
+          } else {
+            overlay.classList.add('show');
+          }
+        }
+      }
+    }
+
     // Handle the sidebar toggle button (circular button on sidebar)
-    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+    var sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
     if (sidebarToggleBtn) {
-      // Remove any existing listeners by cloning
-      const newBtn = sidebarToggleBtn.cloneNode(true);
+      var newBtn = sidebarToggleBtn.cloneNode(true);
       sidebarToggleBtn.parentNode.replaceChild(newBtn, sidebarToggleBtn);
-      
       newBtn.addEventListener('click', function(event) {
         event.preventDefault();
         event.stopPropagation();
-        
-        if (!layoutWrapper) return;
-        
-        // Toggle collapsed class
-        layoutWrapper.classList.toggle('layout-menu-collapsed');
-        
-        // Save state to localStorage
-        const isCollapsed = layoutWrapper.classList.contains('layout-menu-collapsed');
-        localStorage.setItem(STORAGE_KEY, isCollapsed ? 'true' : 'false');
-        
-        // On small screens, handle overlay
-        if (window.innerWidth < 1200) {
-          const overlay = document.querySelector('.layout-overlay');
-          if (overlay) {
-            if (isCollapsed) {
-              overlay.classList.remove('show');
-            } else {
-              overlay.classList.add('show');
-            }
-          }
-        }
+        toggleSidebarAndOverlay();
       });
     }
+
+    // Hamburger menu (navbar): use delegation so it works on mobile for the whole system
+    document.addEventListener('click', function(event) {
+      if (event.target.closest('.layout-navbar .layout-menu-toggle') && !event.target.closest('.layout-overlay')) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (window.innerWidth < 1200) {
+          toggleSidebarAndOverlay();
+        }
+      }
+    });
+
+    // Close sidebar when clicking overlay on mobile
+    document.addEventListener('click', function(e) {
+      if (window.innerWidth >= 1200) return;
+      if (e.target.classList.contains('layout-overlay') && e.target.classList.contains('show')) {
+        layoutWrapper.classList.add('layout-menu-collapsed');
+        localStorage.setItem(STORAGE_KEY, 'true');
+        e.target.classList.remove('show');
+      }
+    });
   }
 
   // Initialize sidebar toggle immediately and also on DOM ready
@@ -153,7 +176,8 @@ let menu, animate;
     initCollapsedDropdowns();
   }
 
-  // Display menu toggle (layout-menu-toggle) on hover with delay
+  // Display menu toggle (layout-menu-toggle) on hover with delay - only target SIDEBAR toggle, not navbar hamburger
+  var sidebarMenuToggleEl = document.querySelector('#layout-menu .layout-menu-toggle') || document.querySelector('.app-brand .layout-menu-toggle');
   let delay = function (elem, callback) {
     let timeout = null;
     elem.onmouseenter = function () {
@@ -166,16 +190,18 @@ let menu, animate;
     };
 
     elem.onmouseleave = function () {
-      // Clear any timers set to timeout
-      document.querySelector('.layout-menu-toggle').classList.remove('d-block');
+      // Clear any timers set to timeout - only affect sidebar toggle, never navbar hamburger
+      if (sidebarMenuToggleEl) {
+        sidebarMenuToggleEl.classList.remove('d-block');
+      }
       clearTimeout(timeout);
     };
   };
   if (document.getElementById('layout-menu')) {
     delay(document.getElementById('layout-menu'), function () {
       // not for small screen
-      if (!Helpers.isSmallScreen()) {
-        document.querySelector('.layout-menu-toggle').classList.add('d-block');
+      if (!Helpers.isSmallScreen() && sidebarMenuToggleEl) {
+        sidebarMenuToggleEl.classList.add('d-block');
       }
     });
   }

@@ -8,6 +8,7 @@ use App\Models\Application;
 use App\Models\Document;
 use App\Models\Contract;
 use App\Mail\ProposalSubmitted;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -107,6 +108,11 @@ class TenantApplicationController extends Controller
                         'dateApplied' => now(),
                     ]);
                     $application = $existingApplication;
+                    try {
+                        ActivityLogService::logUpdate('applications', $application->applicationID, 'Application resubmitted (reopened by tenant).');
+                    } catch (\Exception $e) {
+                        \Log::warning("Failed to log application resubmit: " . $e->getMessage());
+                    }
                 } else {
                     // Create new application with status "Proposal Received"
                     $application = Application::create([
@@ -115,6 +121,11 @@ class TenantApplicationController extends Controller
                         'appStatus' => 'Proposal Received',
                         'dateApplied' => now(),
                     ]);
+                    try {
+                        ActivityLogService::logCreate('applications', $application->applicationID, "Proposal submitted for stall #{$stallId}.");
+                    } catch (\Exception $e) {
+                        \Log::warning("Failed to log application create: " . $e->getMessage());
+                    }
                 }
             } else {
                 // This should not happen due to the check above, but just in case
@@ -233,6 +244,12 @@ class TenantApplicationController extends Controller
             $application->update([
                 'appStatus' => 'Withdrawn'
             ]);
+
+            try {
+                ActivityLogService::logUpdate('applications', $application->applicationID, 'Application withdrawn by tenant.');
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log application withdraw: " . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,

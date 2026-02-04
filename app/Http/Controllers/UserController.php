@@ -247,6 +247,14 @@ class UserController extends Controller
             ->whereNull('deleted_at')
             ->update(['deleted_at' => now()]);
 
+        foreach ($request->ids as $id) {
+            try {
+                \App\Services\ActivityLogService::logDelete('users', (int) $id, "Archived user #{$id}");
+            } catch (\Exception $e) {
+                \Log::warning("Failed to log user archive activity: " . $e->getMessage());
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => "{$count} user(s) archived successfully."
