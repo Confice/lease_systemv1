@@ -17,6 +17,7 @@ use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TenantAccountController;
+use App\Http\Controllers\AdminAccountController;
 use App\Models\Feedback;
 
 // =======================
@@ -154,6 +155,8 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     Route::get('/tenants/prospective/data', [ContractController::class, 'data'])->name('admins.prospective-tenants.data');
     Route::get('/tenants/prospective/{stall}/applications', [ContractController::class, 'applications'])->name('admins.prospective-tenants.applications');
     Route::get('/tenants/prospective/{stall}/applications/data', [ContractController::class, 'applicationsData'])->name('admins.prospective-tenants.applications.data');
+    Route::get('/tenants/prospective/{stall}/applications/eligible-tenants', [ContractController::class, 'eligibleTenantsForStall'])->name('admins.prospective-tenants.applications.eligible-tenants');
+    Route::post('/tenants/prospective/{stall}/applications/store-existing-tenant', [ContractController::class, 'storeApplicationForExistingTenant'])->name('admins.prospective-tenants.applications.store-existing-tenant');
     Route::get('/tenants/prospective/applications/{application}/details', [ContractController::class, 'applicationDetails'])->name('admins.prospective-tenants.application.details');
     Route::post('/tenants/prospective/applications/{application}/schedule-presentation', [ContractController::class, 'schedulePresentation'])->name('admins.prospective-tenants.schedule-presentation');
     Route::post('/tenants/prospective/applications/{application}/approve', [ContractController::class, 'approveApplication'])->name('admins.prospective-tenants.approve');
@@ -185,6 +188,12 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     Route::get('/admins/leases/{contract}/terminate', [ContractController::class, 'showTerminateForm'])->name('admins.leases.show-terminate');
     Route::post('/admins/leases/{contract}/terminate', [ContractController::class, 'terminate'])->name('admins.leases.terminate');
     Route::post('/admins/leases/{contract}/archive', [ContractController::class, 'archive'])->name('admins.leases.archive');
+
+    // Lease Manager Profile & Settings
+    Route::get('/admins/profile', [AdminAccountController::class, 'profile'])->name('admins.profile');
+    Route::get('/admins/settings', [AdminAccountController::class, 'settings'])->name('admins.settings');
+    Route::put('/admins/profile', [AdminAccountController::class, 'updateProfile'])->name('admins.profile.update');
+    Route::post('/admins/settings', [AdminAccountController::class, 'updateSettings'])->name('admins.settings.update');
 });
 
 // =======================

@@ -92,9 +92,9 @@
             <div class="upload-area" id="uploadArea">
               <i class="bx bx-cloud-upload fs-1 text-muted mb-2"></i>
               <p class="mb-1">Click to upload or drag and drop</p>
-              <p class="text-muted small mb-0">PDF, JPG, JPEG, PNG (Max 5MB)</p>
+              <p class="text-muted small mb-0">PDF, JPG, JPEG, PNG, WEBP (Max 5MB)</p>
             </div>
-            <input type="file" id="paymentProofFile" name="paymentProof" accept=".pdf,.jpg,.jpeg,.png" class="d-none" required>
+            <input type="file" id="paymentProofFile" name="paymentProof" accept=".pdf,.jpg,.jpeg,.png,.webp" class="d-none" required>
             <div id="fileName" class="mt-2 text-muted small"></div>
             <div class="invalid-feedback d-block" id="fileError"></div>
             @error('paymentProof')
@@ -208,6 +208,7 @@ $(function(){
       data: formData,
       processData: false,
       contentType: false,
+      headers: { 'Accept': 'application/json' },
       success: function(response) {
         Swal.fire({
           icon: 'success',

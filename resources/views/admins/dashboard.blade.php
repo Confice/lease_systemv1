@@ -93,6 +93,42 @@
 
 </div>
 
+<!-- Recent Tenant Activity -->
+<div class="card shadow-sm">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">Recent Tenant Activity</h5>
+        <a href="{{ route('admins.activity-logs.index') }}" class="btn btn-sm btn-outline-primary">View all</a>
+    </div>
+    <div class="card-body p-0">
+        @if(!empty($recentTenantActivity))
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="border-0">Activity</th>
+                            <th class="border-0">Time</th>
+                            <th class="border-0 text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($recentTenantActivity as $item)
+                            <tr>
+                                <td><span class="text-body">{{ $item['message'] }}</span></td>
+                                <td><span class="text-muted">{{ $item['created_at']->diffForHumans() }}</span></td>
+                                <td class="text-end">
+                                    <a href="{{ $item['url'] }}" class="btn btn-sm btn-primary">Go to</a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div class="text-center text-muted py-5">No recent tenant activity.</div>
+        @endif
+    </div>
+</div>
+
 @push('scripts')
 <script>
 $(document).ready(function() {

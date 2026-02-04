@@ -191,6 +191,36 @@
               <!-- /Module Title -->
 
               <ul class="navbar-nav flex-row align-items-center">
+                <!-- Notifications (Recent activity) -->
+                <li class="nav-item dropdown me-2">
+                  <a class="nav-link dropdown-toggle hide-arrow position-relative" href="javascript:void(0);" data-bs-toggle="dropdown" aria-label="Notifications">
+                    <i class="bx bx-bell fs-4"></i>
+                    @if(isset($recentActivity) && $recentActivity->count() > 0)
+                      <span class="badge rounded-pill bg-danger badge-dot position-absolute top-0 end-0" style="width: 8px; height: 8px;"></span>
+                    @endif
+                  </a>
+                  <ul class="dropdown-menu dropdown-menu-end py-0 w-100" style="min-width: 320px; max-width: 360px;">
+                    <li class="dropdown-header d-flex align-items-center justify-content-between py-3">
+                      <h6 class="mb-0 text-body">Recent activity</h6>
+                      <a href="{{ route('admins.activity-logs.index') }}" class="small">View all</a>
+                    </li>
+                    @if(isset($recentActivity) && $recentActivity->count() > 0)
+                      @foreach($recentActivity->take(5) as $log)
+                        <li>
+                          <a class="dropdown-item d-flex py-2" href="javascript:void(0);">
+                            <span class="flex-grow-1">
+                              <span class="d-block small text-body">{{ $log->description }}</span>
+                              <small class="text-muted">{{ $log->created_at->diffForHumans() }}</small>
+                            </span>
+                            <i class="bx bx-{{ $log->actionType === 'Create' ? 'plus' : ($log->actionType === 'Delete' ? 'trash' : 'edit') }} text-muted ms-2"></i>
+                          </a>
+                        </li>
+                      @endforeach
+                    @else
+                      <li><div class="dropdown-item text-muted small py-3">No recent activity</div></li>
+                    @endif
+                  </ul>
+                </li>
                 <!-- User -->
                 <li class="nav-item navbar-dropdown dropdown-user dropdown">
                   <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown" id="profileDropdown">
@@ -225,8 +255,8 @@
                       </a>
                     </li>
                     <li><div class="dropdown-divider"></div></li>
-                    <li><a class="dropdown-item" href="#"><i class="bx bx-user me-2"></i><span class="align-middle">My Profile</span></a></li>
-                    <li><a class="dropdown-item" href="#"><i class="bx bx-cog me-2"></i><span class="align-middle">Settings</span></a></li>
+                    <li><a class="dropdown-item" href="{{ route('admins.profile') }}"><i class="bx bx-user me-2"></i><span class="align-middle">My Profile</span></a></li>
+                    <li><a class="dropdown-item" href="{{ route('admins.settings') }}"><i class="bx bx-cog me-2"></i><span class="align-middle">Settings</span></a></li>
                     <li>
                       <a class="dropdown-item" href="{{ route('logout') }}"
                          onclick="event.preventDefault(); document.getElementById('logout-form').submit();">

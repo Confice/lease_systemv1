@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Contract;
+use App\Services\ActivityLogService;
 use App\Models\Bill;
 use App\Models\Stall;
 use App\Models\User;
@@ -25,6 +27,7 @@ class DashboardController extends Controller
             abort(403, 'Unauthorized');
         }
         $stats = $this->getAdminStats();
+        $recentTenantActivity = $this->getRecentTenantActivityWithLinks();
 
         return view('admins.dashboard', [
             'dashboardStats' => [
@@ -34,7 +37,37 @@ class DashboardController extends Controller
                 'expiringContracts' => $stats['expiringContracts'],
                 'expectedRentCollected' => number_format($stats['expectedRentCollected'], 2),
             ],
+            'recentTenantActivity' => $recentTenantActivity,
         ]);
+    }
+
+    /**
+     * Get recent tenant activity (applications, bill proof uploads, feedback) with formatted message and goto URL.
+     * Excludes login/logout.
+     */
+    private function getRecentTenantActivityWithLinks(): array
+    {
+        $logs = ActivityLog::with('user')
+            ->whereHas('user', fn ($q) => $q->where('role', 'Tenant'))
+            ->orderByDesc('created_at')
+            ->limit(25)
+            ->get();
+
+        $result = [];
+        foreach ($logs as $log) {
+            $formatted = ActivityLogService::formatForDisplay($log, 'Lease Manager');
+            if ($formatted !== null) {
+                $result[] = [
+                    'message' => $formatted['message'],
+                    'url' => $formatted['url'],
+                    'created_at' => $formatted['created_at'],
+                ];
+                if (count($result) >= 15) {
+                    break;
+                }
+            }
+        }
+        return $result;
     }
 
     /**

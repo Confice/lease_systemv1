@@ -173,6 +173,101 @@ class ContractController extends Controller
     }
 
     /**
+     * Get tenants eligible to be added as an application for this stall (registered, role Tenant, no active application for this stall).
+     */
+    public function eligibleTenantsForStall($stall)
+    {
+        try {
+            $stallModel = Stall::findOrFail($stall);
+            $userIDsWithActiveApp = Application::where('stallID', $stall)
+                ->whereNull('deleted_at')
+                ->whereNotIn('appStatus', ['Withdrawn', 'Proposal Rejected'])
+                ->pluck('userID');
+
+            $tenants = User::where('role', 'Tenant')
+                ->whereNull('deleted_at')
+                ->where('userStatus', 'Active')
+                ->whereNotIn('id', $userIDsWithActiveApp)
+                ->orderBy('firstName')
+                ->orderBy('lastName')
+                ->get(['id', 'firstName', 'middleName', 'lastName', 'email']);
+
+            $data = $tenants->map(function ($u) {
+                $fullName = trim(($u->firstName ?? '') . ' ' . ($u->middleName ?? '') . ' ' . ($u->lastName ?? ''));
+                return ['id' => $u->id, 'name' => $fullName ?: $u->email, 'email' => $u->email];
+            });
+
+            return response()->json(['data' => $data]);
+        } catch (\Exception $e) {
+            \Log::error("Eligible tenants error: " . $e->getMessage());
+            return response()->json(['data' => [], 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Create an application for an existing (registered) tenant on this stall.
+     */
+    public function storeApplicationForExistingTenant(Request $request, $stall)
+    {
+        $request->validate([
+            'userID' => 'required|integer|exists:users,id',
+        ]);
+
+        try {
+            $stallModel = Stall::with('marketplace')->findOrFail($stall);
+            $userId = (int) $request->userID;
+
+            $user = User::where('id', $userId)->where('role', 'Tenant')->whereNull('deleted_at')->first();
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'Selected user is not an active tenant.'], 400);
+            }
+
+            $existing = Application::where('userID', $userId)
+                ->where('stallID', $stall)
+                ->whereNull('deleted_at')
+                ->whereNotIn('appStatus', ['Withdrawn', 'Proposal Rejected'])
+                ->first();
+            if ($existing) {
+                return response()->json(['success' => false, 'message' => 'This tenant already has an active application for this stall.'], 400);
+            }
+
+            $application = Application::create([
+                'userID' => $userId,
+                'stallID' => $stall,
+                'dateApplied' => now(),
+                'appStatus' => 'Proposal Received',
+                'remarks' => null,
+                'noticeType' => null,
+                'noticeDate' => null,
+                'contractID' => null,
+            ]);
+
+            $stallName = $stallModel->stallNo . ($stallModel->marketplace ? ' (' . $stallModel->marketplace->marketplace . ')' : '');
+            ActivityLogService::log('Create', 'applications', $application->applicationID, "Application added for stall {$stallName} (by lease manager).", $userId);
+
+            $fullName = trim(($user->firstName ?? '') . ' ' . ($user->middleName ?? '') . ' ' . ($user->lastName ?? ''));
+            return response()->json([
+                'success' => true,
+                'message' => 'Application added successfully.',
+                'application' => [
+                    'applicationID' => $application->applicationID,
+                    'number' => 0,
+                    'name' => $fullName ?: '-',
+                    'hasRequirements' => false,
+                    'requirementCount' => 0,
+                    'status' => $application->appStatus,
+                    'dateApplied' => $application->dateApplied ? $application->dateApplied->format('Y-m-d H:i:s') : null,
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error("Store existing tenant application error: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to add application.'], 500);
+        }
+    }
+
+    /**
      * Get application details for admin viewing
      */
     public function applicationDetails($application)
@@ -1112,9 +1207,10 @@ class ContractController extends Controller
             $status = $request->input('status', 'all');
             $search = $request->input('search', '');
 
-            $query = Contract::where('userID', $user->id)
+            // All non-deleted contracts for this tenant (same user as My Bills)
+            $query = Contract::where('contracts.userID', $user->id)
                 ->with(['stall.marketplace'])
-                ->whereNull('deleted_at');
+                ->whereNull('contracts.deleted_at');
 
             // Filter by status
             if ($status !== 'all') {

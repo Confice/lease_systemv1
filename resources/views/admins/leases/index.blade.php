@@ -194,6 +194,9 @@
       </div>
     </div>
     <!-- /Search Bar -->
+    <a href="{{ route('admins.marketplace.index') }}" class="btn btn-label-primary">
+      <i class="bx bx-map me-1"></i> Go to Marketplace Map
+    </a>
   </div>
 
   <div class="card-body">

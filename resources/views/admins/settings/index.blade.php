@@ -1,4 +1,4 @@
-@extends('layouts.tenant_app')
+@extends('layouts.admin_app')
 
 @section('title', 'Settings')
 @section('page-title', 'Settings')

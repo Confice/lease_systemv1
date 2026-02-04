@@ -49,4 +49,12 @@ class Bill extends Model
     {
         return $this->belongsTo(Contract::class, 'contractID');
     }
+
+    /**
+     * Route key for URL (bills use billID).
+     */
+    public function getRouteKeyName()
+    {
+        return 'billID';
+    }
 }

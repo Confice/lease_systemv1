@@ -25,7 +25,8 @@ class FeedbackController extends Controller
     }
 
     /**
-     * Return detailed data for a single feedback entry.
+     * Show a single feedback entry. Returns HTML for browser (e.g. "Go to" from activity),
+     * JSON for AJAX (e.g. modal load).
      */
     public function show(Feedback $feedback)
     {
@@ -50,6 +51,14 @@ class FeedbackController extends Controller
                 'reliability_recovery' => 'I can recover or retry easily if something fails online.',
             ],
         ];
+
+        // Browser "Go to" from Recent Activity: return HTML page (not JSON)
+        if (! request()->expectsJson()) {
+            return view('admins.feedback_form.show', [
+                'feedback' => $feedback,
+                'sections' => $sections,
+            ]);
+        }
 
         $sectionDetails = [];
         foreach ($sections as $sectionName => $items) {
@@ -79,7 +88,7 @@ class FeedbackController extends Controller
             'stall' => [
                 'stall_no' => optional(optional($feedback->contract)->stall)->stallNo,
                 'marketplace' => optional(optional(optional($feedback->contract)->stall)->marketplace)->marketplace,
-                'marketplace_address' => optional(optional(optional($feedback->contract)->stall)->marketplace)->marketplaceAddress,
+                'marketplace_address' => optional(optional(optional($feedback->contract)->stall)->marketplace)->marketplaceAddress ?? null,
             ],
             'sections' => $sectionDetails,
             'comments' => $feedback->comments,

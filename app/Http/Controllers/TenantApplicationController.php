@@ -77,7 +77,20 @@ class TenantApplicationController extends Controller
         $validated = $request->validate([
             'stallID' => 'required|exists:stalls,stallID',
             'files' => 'array',
-            'files.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240', // 10MB max
+            'files.*' => [
+                'file',
+                'max:10240', // 10MB in KB
+                function ($attribute, $value, $fail) {
+                    if (!$value || !$value->isValid()) {
+                        return;
+                    }
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    $allowed = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'];
+                    if (!in_array($ext, $allowed)) {
+                        $fail('Each file must be PDF, DOC, DOCX, JPG, JPEG, PNG, or WEBP.');
+                    }
+                },
+            ],
         ]);
 
         DB::beginTransaction();
@@ -94,8 +107,11 @@ class TenantApplicationController extends Controller
             // Prevent duplicate applications unless status is "Proposal Rejected" or "Withdrawn"
             if ($existingApplication && !in_array($existingApplication->appStatus, ['Proposal Rejected', 'Withdrawn'])) {
                 DB::rollBack();
-                return back()->withInput()
-                    ->with('error', 'You already have an active application for this stall. Please wait for the review process to complete.');
+                $msg = 'You already have an active application for this stall. Please wait for the review process to complete.';
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['message' => $msg], 422);
+                }
+                return back()->withInput()->with('error', $msg);
             }
 
             // Create new application or update rejected/withdrawn one
@@ -149,8 +165,11 @@ class TenantApplicationController extends Controller
             $missingRequired = array_diff($requiredRequirements, $uploadedFiles);
             
             if (!empty($missingRequired)) {
-                return back()->withInput()
-                    ->with('error', 'Please upload all required documents: ' . implode(', ', $missingRequired));
+                $msg = 'Please upload all required documents: ' . implode(', ', $missingRequired);
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['message' => $msg, 'errors' => ['files' => [$msg]]], 422);
+                }
+                return back()->withInput()->with('error', $msg);
             }
 
             // Store uploaded files
@@ -209,14 +228,27 @@ class TenantApplicationController extends Controller
                 // Don't fail the request if email fails
             }
 
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Your application has been submitted successfully!',
+                    'redirect' => route('tenants.stalls.index'),
+                ]);
+            }
             return redirect()->route('tenants.stalls.index')
                 ->with('success', 'Your application has been submitted successfully!');
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error("Failed to submit application: " . $e->getMessage());
-            return back()->withInput()
-                ->with('error', 'Failed to submit application. Please try again.');
+            $msg = 'Failed to submit application. Please try again.';
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['message' => $msg], 500);
+            }
+            return back()->withInput()->with('error', $msg);
         }
     }
 

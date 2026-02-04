@@ -51,12 +51,7 @@
     @stack('styles')
   </head>
 
-  @php
-    $user = Auth::user();
-    $themeClass = ($user && ($user->themePreference ?? 'light') === 'dark') ? 'dark-mode' : '';
-    $motionClass = ($user && ($user->reduceMotion ?? false)) ? 'reduce-motion' : '';
-  @endphp
-  <body class="{{ $themeClass }} {{ $motionClass }}">
+  <body>
     <!-- Layout wrapper -->
     <div class="layout-wrapper layout-content-navbar layout-menu-fixed">
       <div class="layout-container">
@@ -162,6 +157,35 @@
               <!-- /Module Title -->
 
               <ul class="navbar-nav flex-row align-items-center">
+                <!-- Notifications (Recent activity) -->
+                <li class="nav-item dropdown me-2">
+                  <a class="nav-link dropdown-toggle hide-arrow position-relative" href="javascript:void(0);" data-bs-toggle="dropdown" aria-label="Notifications">
+                    <i class="bx bx-bell fs-4"></i>
+                    @if(isset($recentActivity) && $recentActivity->count() > 0)
+                      <span class="badge rounded-pill bg-danger badge-dot position-absolute top-0 end-0" style="width: 8px; height: 8px;"></span>
+                    @endif
+                  </a>
+                  <ul class="dropdown-menu dropdown-menu-end py-0 w-100" style="min-width: 320px; max-width: 360px;">
+                    <li class="dropdown-header py-3">
+                      <h6 class="mb-0 text-body">Your recent activity</h6>
+                    </li>
+                    @if(isset($recentActivity) && $recentActivity->count() > 0)
+                      @foreach($recentActivity->take(5) as $log)
+                        <li>
+                          <a class="dropdown-item d-flex py-2" href="javascript:void(0);">
+                            <span class="flex-grow-1">
+                              <span class="d-block small text-body">{{ $log->description }}</span>
+                              <small class="text-muted">{{ $log->created_at->diffForHumans() }}</small>
+                            </span>
+                            <i class="bx bx-{{ $log->actionType === 'Create' ? 'plus' : ($log->actionType === 'Delete' ? 'trash' : 'edit') }} text-muted ms-2"></i>
+                          </a>
+                        </li>
+                      @endforeach
+                    @else
+                      <li><div class="dropdown-item text-muted small py-3">No recent activity</div></li>
+                    @endif
+                  </ul>
+                </li>
                 <!-- User -->
                 <li class="nav-item navbar-dropdown dropdown-user dropdown">
                   <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown" id="profileDropdown">
@@ -287,41 +311,6 @@
     
     <!-- Prevent dropdown items from turning white on click -->
     <style>
-      body.dark-mode {
-        background-color: #111315;
-        color: #E6E6E6;
-      }
-      body.dark-mode .card,
-      body.dark-mode .layout-navbar,
-      body.dark-mode .layout-menu {
-        background-color: #1a1d21 !important;
-        color: #E6E6E6;
-      }
-      body.dark-mode .text-muted {
-        color: #B3B3B3 !important;
-      }
-      body.dark-mode .table {
-        color: #E6E6E6;
-      }
-      body.dark-mode .table thead th {
-        background-color: #1f2328;
-        color: #E6E6E6;
-      }
-      body.dark-mode .form-control,
-      body.dark-mode .form-select {
-        background-color: #1f2328;
-        color: #E6E6E6;
-        border-color: #2b3036;
-      }
-      body.dark-mode .form-control::placeholder {
-        color: #9aa0a6;
-      }
-      body.reduce-motion * {
-        transition: none !important;
-        animation: none !important;
-        scroll-behavior: auto !important;
-      }
-
       .dropdown-item:active,
       .dropdown-item:focus,
       .dropdown-item.active {

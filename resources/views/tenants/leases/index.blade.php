@@ -210,9 +210,9 @@
   <div class="card-body">
     <!-- Action Buttons Group (aligned with DataTables length selector) -->
     <div class="d-flex align-items-center gap-2" id="actionButtonsGroup" style="display: none !important;">
-      <!-- Status Filter -->
+      <!-- Status Filter (default: all so leases stay in sync with bills) -->
       <select id="statusFilter" class="form-select" style="max-width: 200px;">
-        <option value="all">All Status</option>
+        <option value="all" selected>All Status</option>
         <option value="Active">Active</option>
         <option value="Expiring">Expiring</option>
         <option value="Terminated">Terminated</option>

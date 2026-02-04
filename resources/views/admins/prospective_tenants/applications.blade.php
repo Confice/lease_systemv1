@@ -151,6 +151,22 @@
   body:has(#viewNoticeModal.show) .modal-backdrop {
     z-index: 1040 !important;
   }
+
+  /* Add Existing Tenant Modal - ensure above backdrop and clickable */
+  #addExistingTenantModal {
+    z-index: 1060 !important;
+  }
+  #addExistingTenantModal.show,
+  #addExistingTenantModal.modal.show {
+    z-index: 1060 !important;
+  }
+  #addExistingTenantModal .modal-dialog,
+  #addExistingTenantModal .modal-content {
+    pointer-events: auto !important;
+  }
+  body:has(#addExistingTenantModal.show) .modal-backdrop {
+    z-index: 1059 !important;
+  }
 </style>
 @endpush
 
@@ -373,6 +389,39 @@
           <button type="button" class="btn btn-label-primary" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary">
             <i class="bx bx-check me-1"></i> Schedule
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add Existing Tenant as Application -->
+<div class="modal fade" id="addExistingTenantModal" tabindex="-1" aria-labelledby="addExistingTenantModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom" style="background-color: #EFEFEA !important;">
+        <h5 class="modal-title fw-bold text-primary" id="addExistingTenantModalLabel">
+          <i class="bx bx-user-plus me-2"></i> Add Existing Tenant
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="addExistingTenantForm">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">Select a registered tenant to add as an application for this stall. Only active tenants without an existing application for this stall are listed.</p>
+          <div class="mb-3">
+            <label for="addExistingTenantSelect" class="form-label">Tenant <span class="text-danger">*</span></label>
+            <select class="form-select" id="addExistingTenantSelect" name="userID" required>
+              <option value="">-- Select tenant --</option>
+              <!-- Options loaded via AJAX -->
+            </select>
+            <div id="addExistingTenantEmpty" class="text-muted small mt-2" style="display: none;">No eligible tenants. All active tenants already have an application for this stall or are ineligible.</div>
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="addExistingTenantSubmitBtn">
+            <i class="bx bx-plus me-1"></i> Add Application
           </button>
         </div>
       </form>
@@ -869,15 +918,76 @@ $(function(){
     });
   });
 
-  // Add New Application button (placeholder)
+  // Add New Record: open modal and load eligible tenants
+  const eligibleTenantsUrl = "{{ route('admins.prospective-tenants.applications.eligible-tenants', $stall->stallID) }}";
+  const storeExistingTenantUrl = "{{ route('admins.prospective-tenants.applications.store-existing-tenant', $stall->stallID) }}";
+
   $('#btnAddApplication').on('click', function() {
-    Swal.fire({
-      icon: 'info',
-      title: 'Add New Application',
-      text: 'Add new application functionality will be implemented.',
-      toast: true,
-      position: 'top',
-      timer: 2000
+    const $select = $('#addExistingTenantSelect');
+    const $empty = $('#addExistingTenantEmpty');
+    $select.empty().append('<option value="">-- Select tenant --</option>');
+    $empty.hide();
+    $('#addExistingTenantSubmitBtn').prop('disabled', true);
+
+    $.get(eligibleTenantsUrl, function(res) {
+      const list = res.data || [];
+      if (list.length === 0) {
+        $empty.show();
+      } else {
+        list.forEach(function(t) {
+          $select.append($('<option></option>').attr('value', t.id).text(t.name + (t.email ? ' (' + t.email + ')' : '')));
+        });
+        $('#addExistingTenantSubmitBtn').prop('disabled', false);
+      }
+    }).fail(function() {
+      $empty.text('Failed to load tenants.').show();
+    });
+
+    const $addModal = $('#addExistingTenantModal');
+    if ($addModal.parent().length && !$addModal.parent().is('body')) {
+      $addModal.appendTo('body');
+    }
+    const modalEl = document.getElementById('addExistingTenantModal');
+    const existing = bootstrap.Modal.getInstance(modalEl);
+    if (existing) existing.dispose();
+    const modal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: true });
+    $(modalEl).css({ 'z-index': 1060, 'pointer-events': 'auto' });
+    $(modalEl).find('.modal-dialog, .modal-content').css('pointer-events', 'auto');
+    modal.show();
+    $(modalEl).on('shown.bs.modal', function() {
+      $(this).css({ 'z-index': 1060, 'pointer-events': 'auto' });
+      $(this).find('.modal-dialog, .modal-content').css('pointer-events', 'auto');
+      $('.modal-backdrop').last().css('z-index', 1059);
+    });
+  });
+
+  $('#addExistingTenantForm').on('submit', function(e) {
+    e.preventDefault();
+    const $btn = $('#addExistingTenantSubmitBtn');
+    const uid = $('#addExistingTenantSelect').val();
+    if (!uid) return;
+    $btn.prop('disabled', true);
+
+    $.ajax({
+      url: storeExistingTenantUrl,
+      method: 'POST',
+      data: { userID: uid, _token: $('meta[name="csrf-token"]').attr('content') },
+      success: function(res) {
+        if (res.success) {
+          bootstrap.Modal.getInstance(document.getElementById('addExistingTenantModal')).hide();
+          table.ajax.reload(null, false);
+          Swal.fire({ icon: 'success', title: 'Added', text: res.message || 'Application added successfully.', toast: true, position: 'top', timer: 2000 });
+        } else {
+          Swal.fire({ icon: 'warning', title: 'Notice', text: res.message || 'Could not add application.' });
+        }
+      },
+      error: function(xhr) {
+        const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to add application.';
+        Swal.fire({ icon: 'error', title: 'Error', text: msg });
+      },
+      complete: function() {
+        $btn.prop('disabled', false);
+      }
     });
   });
 

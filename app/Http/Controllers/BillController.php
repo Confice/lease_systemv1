@@ -42,8 +42,12 @@ class BillController extends Controller
             $status = $request->input('status');
             $search = $request->input('search', '');
 
+            // All non-deleted bills; contract must exist and not be deleted (integrity with leases)
             $query = Bill::with(['contract.user', 'stall.marketplace'])
-                ->whereNull('deleted_at');
+                ->whereNull('bills.deleted_at')
+                ->whereHas('contract', function ($q) {
+                    $q->whereNull('contracts.deleted_at');
+                });
 
             // Filter by status
             if ($status && $status !== 'all') {
@@ -102,13 +106,18 @@ class BillController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $bill = Bill::where('billID', $bill)
+        $billModel = Bill::where('billID', $bill)
             ->whereNull('deleted_at')
             ->with(['contract.user', 'stall.marketplace'])
-            ->firstOrFail();
+            ->first();
+
+        if (!$billModel) {
+            return redirect()->route('admins.bills.index')
+                ->with('warning', 'Bill not found or it has been archived.');
+        }
 
         return view('admins.bills.update-status', [
-            'bill' => $bill,
+            'bill' => $billModel,
         ]);
     }
 
@@ -255,15 +264,14 @@ class BillController extends Controller
             $status = $request->input('status');
             $search = $request->input('search', '');
 
-            // Get user's active contracts
-            $contractIds = Contract::where('userID', $user->id)
-                ->where('contractStatus', 'Active')
-                ->whereNull('deleted_at')
-                ->pluck('contractID');
-
+            // Bills only for this tenant's active, non-deleted contracts (same source as My Leases)
             $query = Bill::with(['stall.marketplace', 'contract'])
-                ->whereIn('contractID', $contractIds)
-                ->whereNull('deleted_at');
+                ->whereNull('bills.deleted_at')
+                ->whereHas('contract', function ($q) use ($user) {
+                    $q->where('userID', $user->id)
+                        ->where('contractStatus', 'Active')
+                        ->whereNull('contracts.deleted_at');
+                });
 
             // Filter by status
             if ($status && $status !== 'all') {

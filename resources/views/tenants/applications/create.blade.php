@@ -307,11 +307,12 @@
         data: formData,
         processData: false,
         contentType: false,
+        headers: { 'Accept': 'application/json' },
         success: function(response) {
           Swal.fire({
             icon:'success',
             title:'Success',
-            text: 'Your application has been submitted successfully!',
+            text: response.message || 'Your application has been submitted successfully!',
             toast:true,
             position:'top',
             showConfirmButton:false,
@@ -319,7 +320,7 @@
             timer: 2000,
             timerProgressBar:true
           }).then(() => {
-            window.location.href = "{{ route('tenants.stalls.index') }}";
+            window.location.href = response.redirect || "{{ route('tenants.stalls.index') }}";
           });
         },
         error: function(xhr) {
@@ -330,19 +331,19 @@
             errorMsg = xhr.responseJSON.message;
           } else if (xhr.responseJSON && xhr.responseJSON.errors) {
             const errors = Object.values(xhr.responseJSON.errors).flat();
-            errorMsg = errors.join('<br>');
+            errorMsg = Array.isArray(errors) ? errors.join('<br>') : errors;
           }
 
           Swal.fire({
             icon:'error',
             title:'Error',
-            text: errorMsg,
-            toast:true,
+            html: errorMsg,
+            toast: true,
             position:'top',
-            showConfirmButton:false,
-            showCloseButton:true,
-            timer: 2000,
-            timerProgressBar:true
+            showConfirmButton: false,
+            showCloseButton: true,
+            timer: 4000,
+            timerProgressBar: true
           });
         }
       });

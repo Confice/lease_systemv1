@@ -3,10 +3,104 @@
 namespace App\Services;
 
 use App\Models\ActivityLog;
+use App\Models\Application;
+use App\Models\Bill;
+use App\Models\Feedback;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 class ActivityLogService
 {
+    /**
+     * Exclude these action types from "process" activity (dashboard / notify).
+     */
+    public static function isSystemProcessLog(ActivityLog $log): bool
+    {
+        return !in_array($log->actionType, ['Login', 'Logout'], true);
+    }
+
+    /**
+     * Format a single activity log for display (friendly message + goto URL).
+     * Returns null for login/logout or when entity is not one we format.
+     * @param string $viewerRole 'Lease Manager' or 'Tenant' – URL built for that role.
+     */
+    public static function formatForDisplay(ActivityLog $log, string $viewerRole = 'Lease Manager'): ?array
+    {
+        if (!self::isSystemProcessLog($log)) {
+            return null;
+        }
+
+        $userName = 'A tenant';
+        if ($log->user) {
+            $name = trim(($log->user->firstName ?? '') . ' ' . ($log->user->lastName ?? ''));
+            $userName = $name ?: ($log->user->email ?? 'A tenant');
+        }
+        $dateTime = $log->created_at->format('M j, Y g:i A');
+        $entity = $log->entity ?? '';
+        $entityID = $log->entityID;
+        $isAdmin = $viewerRole === 'Lease Manager';
+
+        $message = null;
+        $url = null;
+
+        switch ($entity) {
+            case 'applications':
+                $app = Application::with(['stall.marketplace'])->whereNull('deleted_at')->find($entityID);
+                $stallName = $app && $app->stall
+                    ? $app->stall->stallNo . ($app->stall->marketplace ? ' (' . $app->stall->marketplace->marketplace . ')' : '')
+                    : 'a stall';
+                $message = "{$userName} applied to {$stallName} on {$dateTime}";
+                if ($isAdmin) {
+                    $url = $app && $app->stall ? route('admins.prospective-tenants.applications', $app->stallID) : route('admins.prospective-tenants.index');
+                } else {
+                    $url = route('tenants.stalls.index');
+                }
+                break;
+
+            case 'bills':
+                $desc = $log->description ?? '';
+                if (stripos($desc, 'proof') === false) {
+                    return null; // only show payment proof uploads
+                }
+                $bill = Bill::with(['contract.stall.marketplace'])->whereNull('deleted_at')->find($entityID);
+                $stallName = 'a stall';
+                if ($bill && $bill->contract && $bill->contract->stall) {
+                    $s = $bill->contract->stall;
+                    $stallName = $s->stallNo . ($s->marketplace ? ' (' . $s->marketplace->marketplace . ')' : '');
+                }
+                $message = "{$userName} uploaded bill proof for {$stallName} on {$dateTime}";
+                if ($isAdmin) {
+                    $url = Route::has('admins.bills.show-update-status') ? route('admins.bills.show-update-status', $entityID) : route('admins.bills.index');
+                } else {
+                    $url = $entityID && Route::has('tenants.bills.upload') ? route('tenants.bills.upload', $entityID) : route('tenants.bills.index');
+                }
+                break;
+
+            case 'feedbacks':
+                $feedback = Feedback::with(['contract.stall.marketplace'])->find($entityID);
+                $stallName = '';
+                if ($feedback && $feedback->contract && $feedback->contract->stall) {
+                    $s = $feedback->contract->stall;
+                    $stallName = ' (' . $s->stallNo . ($s->marketplace ? ' - ' . $s->marketplace->marketplace : '') . ')';
+                }
+                $message = "{$userName} sent a feedback{$stallName} on {$dateTime}";
+                if ($isAdmin) {
+                    $url = Route::has('admins.feedback.show') ? route('admins.feedback.show', $entityID) : route('admins.feedback.index');
+                } else {
+                    $url = route('tenants.feedback.index');
+                }
+                break;
+
+            default:
+                return null;
+        }
+
+        return [
+            'message' => $message,
+            'url' => $url,
+            'created_at' => $log->created_at,
+        ];
+    }
     /**
      * Log an activity
      *

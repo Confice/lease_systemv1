@@ -43,4 +43,12 @@ class Feedback extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    /**
+     * Get the route key for implicit route model binding (URL uses feedbackID).
+     */
+    public function getRouteKeyName()
+    {
+        return 'feedbackID';
+    }
 }

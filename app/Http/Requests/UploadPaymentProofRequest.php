@@ -23,7 +23,18 @@ class UploadPaymentProofRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'paymentProof' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max
+            'paymentProof' => [
+                'required',
+                'file',
+                'max:5120', // 5MB in KB
+                function ($attribute, $value, $fail) {
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+                    if (!in_array($ext, $allowed)) {
+                        $fail('Payment proof must be PDF, JPG, JPEG, PNG, or WEBP.');
+                    }
+                },
+            ],
         ];
     }
 
@@ -37,7 +48,7 @@ class UploadPaymentProofRequest extends FormRequest
         return [
             'paymentProof.required' => 'Payment proof file is required.',
             'paymentProof.file' => 'Payment proof must be a file.',
-            'paymentProof.mimes' => 'Payment proof must be a PDF, JPG, JPEG, or PNG file.',
+            'paymentProof.mimes' => 'Payment proof must be a PDF, JPG, JPEG, PNG, or WEBP file.',
             'paymentProof.max' => 'Payment proof file size cannot exceed 5MB.',
         ];
     }

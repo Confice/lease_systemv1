@@ -119,6 +119,7 @@ class StallController extends Controller
             
             return [
                 'stallID' => $stall->stallID,
+                'formatted_stall_id' => $stall->formatted_stall_id,
                 'stallNo' => strtoupper($stall->stallNo),
                 'marketplace' => $stall->marketplace ? $stall->marketplace->marketplace : '-',
                 'rentBy' => $rentBy ?? '-',

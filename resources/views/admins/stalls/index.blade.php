@@ -16,8 +16,9 @@
         </div>
     </div>
     <!-- /Search Bar -->
-    
-    <!-- Add New Stall Button removed -->
+    <a href="{{ route('admins.marketplace.index') }}" class="btn btn-label-primary">
+        <i class="bx bx-map me-1"></i> Go to Marketplace Map
+    </a>
   </div>
 
   <div class="card-body">
@@ -57,6 +58,7 @@
               <input type="checkbox" id="selectAllCheckbox" class="form-check-input" title="Select All">
             </th>
             <th>#</th>
+            <th>Stall</th>
             <th>Stall Name</th>
             <th>Marketplace</th>
             <th>Rent By</th>
@@ -697,6 +699,7 @@ $(function(){
         // For sorting: use the actual ID value
         return data;
       }},
+      {data:'formatted_stall_id', orderable:true, render:function(d){ return d || '-'; }},
       {data:'stallNo', orderable:true, render:function(d){ return d ? d.toUpperCase() : ''; }},
       {data:'marketplace', orderable:true},
       {data:'rentBy', orderable:true, render:function(d, type, row){
