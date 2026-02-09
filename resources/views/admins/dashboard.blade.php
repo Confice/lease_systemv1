@@ -75,7 +75,7 @@
 
     <!-- Expected Rent Collected -->
     <div class="col-md-3 col-sm-6">
-        <a href="{{ url('/bills') }}" class="text-decoration-none">
+        <a href="{{ route('admins.bills.index') }}" class="text-decoration-none">
             <div class="card shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="avatar flex-shrink-0 me-3 bg-label-success rounded d-flex align-items-center justify-content-center">

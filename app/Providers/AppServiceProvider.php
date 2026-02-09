@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\ActivityLog;
+use App\Models\Application;
 use App\Services\ActivityLogService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -33,12 +34,33 @@ class AppServiceProvider extends ServiceProvider
             if (Auth::check()) {
                 $user = Auth::user();
                 $viewerRole = $user->role === 'Lease Manager' ? 'Lease Manager' : 'Tenant';
-                $query = $user->role === 'Lease Manager'
-                    ? ActivityLog::with('user')->whereHas('user', fn ($q) => $q->where('role', 'Tenant'))
-                    : ActivityLog::with('user')->where('userID', $user->id);
-                $logs = $query->orderByDesc('created_at')->limit(20)->get();
+                if ($user->role === 'Lease Manager') {
+                    $logs = ActivityLog::with('user')
+                        ->whereHas('user', fn ($q) => $q->where('role', 'Tenant'))
+                        ->orderByDesc('created_at')
+                        ->limit(20)
+                        ->get();
+                } else {
+                    // Tenant: own activity + lease manager actions on this tenant's applications
+                    $tenantApplicationIds = Application::where('userID', $user->id)->pluck('applicationID')->toArray();
+                    $logs = ActivityLog::with('user')
+                        ->where(function ($q) use ($user, $tenantApplicationIds) {
+                            $q->where('userID', $user->id);
+                            if (count($tenantApplicationIds) > 0) {
+                                $q->orWhere(function ($q2) use ($tenantApplicationIds) {
+                                    $q2->where('entity', 'applications')
+                                        ->whereIn('entityID', $tenantApplicationIds);
+                                });
+                            }
+                        })
+                        ->orderByDesc('created_at')
+                        ->limit(25)
+                        ->get();
+                }
                 foreach ($logs as $log) {
-                    $item = ActivityLogService::formatForDisplay($log, $viewerRole);
+                    $item = $viewerRole === 'Tenant'
+                        ? ActivityLogService::formatForDisplay($log, $viewerRole, (int) $user->id)
+                        : ActivityLogService::formatForDisplay($log, $viewerRole);
                     if ($item !== null) {
                         $recentActivityFormatted[] = $item;
                         if (count($recentActivityFormatted) >= 10) {

@@ -195,7 +195,7 @@
                 <li class="nav-item dropdown me-2">
                   <a class="nav-link dropdown-toggle hide-arrow position-relative" href="javascript:void(0);" data-bs-toggle="dropdown" aria-label="Notifications">
                     <i class="bx bx-bell fs-4"></i>
-                    @if(isset($recentActivity) && $recentActivity->count() > 0)
+                    @if(!empty($recentActivityFormatted))
                       <span class="badge rounded-pill bg-danger badge-dot position-absolute top-0 end-0" style="width: 8px; height: 8px;"></span>
                     @endif
                   </a>
@@ -204,15 +204,15 @@
                       <h6 class="mb-0 text-body">Recent activity</h6>
                       <a href="{{ route('admins.activity-logs.index') }}" class="small">View all</a>
                     </li>
-                    @if(isset($recentActivity) && $recentActivity->count() > 0)
-                      @foreach($recentActivity->take(5) as $log)
+                    @if(!empty($recentActivityFormatted))
+                      @foreach(array_slice($recentActivityFormatted, 0, 5) as $item)
                         <li>
-                          <a class="dropdown-item d-flex py-2" href="javascript:void(0);">
+                          <a class="dropdown-item d-flex py-2" href="{{ $item['url'] ?? '#' }}">
                             <span class="flex-grow-1">
-                              <span class="d-block small text-body">{{ $log->description }}</span>
-                              <small class="text-muted">{{ $log->created_at->diffForHumans() }}</small>
+                              <span class="d-block small text-body">{{ $item['message'] }}</span>
+                              <small class="text-muted">{{ $item['created_at']->diffForHumans() }}</small>
                             </span>
-                            <i class="bx bx-{{ $log->actionType === 'Create' ? 'plus' : ($log->actionType === 'Delete' ? 'trash' : 'edit') }} text-muted ms-2"></i>
+                            <i class="bx bx-right-arrow-alt text-muted ms-2"></i>
                           </a>
                         </li>
                       @endforeach

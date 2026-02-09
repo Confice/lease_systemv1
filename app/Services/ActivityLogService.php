@@ -23,8 +23,9 @@ class ActivityLogService
      * Format a single activity log for display (friendly message + goto URL).
      * Returns null for login/logout or when entity is not one we format.
      * @param string $viewerRole 'Lease Manager' or 'Tenant' – URL built for that role.
+     * @param int|null $viewerUserId When viewer is Tenant, used to show "lease manager did X for you" messages.
      */
-    public static function formatForDisplay(ActivityLog $log, string $viewerRole = 'Lease Manager'): ?array
+    public static function formatForDisplay(ActivityLog $log, string $viewerRole = 'Lease Manager', ?int $viewerUserId = null): ?array
     {
         if (!self::isSystemProcessLog($log)) {
             return null;
@@ -49,11 +50,29 @@ class ActivityLogService
                 $stallName = $app && $app->stall
                     ? $app->stall->stallNo . ($app->stall->marketplace ? ' (' . $app->stall->marketplace->marketplace . ')' : '')
                     : 'a stall';
-                $message = "{$userName} applied to {$stallName} on {$dateTime}";
+                // Tenant viewing: if this log is about their application but done by someone else (lease manager), show manager action
+                if (!$isAdmin && $viewerUserId && $app && (int) $app->userID === (int) $viewerUserId && (int) $log->userID !== (int) $viewerUserId) {
+                    $desc = $log->description ?? '';
+                    $actionPhrase = 'updated your application';
+                    if (stripos($desc, 'approved') !== false) {
+                        $actionPhrase = 'approved your application';
+                    } elseif (stripos($desc, 'rejected') !== false) {
+                        $actionPhrase = 'rejected your application';
+                    } elseif (stripos($desc, 'Presentation scheduled') !== false || stripos($desc, 'scheduled') !== false) {
+                        $actionPhrase = 'scheduled a presentation for your application';
+                    } elseif (stripos($desc, 'reopened') !== false) {
+                        $actionPhrase = 'reopened your application for resubmission';
+                    } elseif (stripos($desc, 'removed') !== false || stripos($desc, 'Deleted') !== false) {
+                        $actionPhrase = 'removed your application from the list';
+                    }
+                    $message = "The lease manager {$actionPhrase} for {$stallName}.";
+                } else {
+                    $message = "{$userName} applied to {$stallName} on {$dateTime}";
+                }
                 if ($isAdmin) {
                     $url = $app && $app->stall ? route('admins.prospective-tenants.applications', $app->stallID) : route('admins.prospective-tenants.index');
                 } else {
-                    $url = route('tenants.stalls.index');
+                    $url = $app ? route('tenants.applications.show', $app->applicationID) : route('tenants.stalls.index');
                 }
                 break;
 

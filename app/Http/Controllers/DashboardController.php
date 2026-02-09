@@ -87,7 +87,7 @@ class DashboardController extends Controller
             'occupiedStalls' => $stats['occupiedStalls'],
             'totalStalls' => $stats['totalStalls'],
             'expiringContracts' => $stats['expiringContracts'],
-            'expectedRentCollected' => number_format($stats['expectedRentCollected'], 2),
+            'expectedRentCollected' => (float) $stats['expectedRentCollected'],
             'pendingBills' => $stats['pendingBills'],
             'recentFeedback' => $stats['recentFeedback'],
             'activeContracts' => $stats['activeContracts'],
@@ -159,8 +159,7 @@ class DashboardController extends Controller
             abort(403, 'Unauthorized');
         }
         try {
-            $html = view('tenants.dashboard')->render();
-            return response($html);
+            return view('tenants.dashboard');
         } catch (\Throwable $e) {
             \Log::error('Tenant dashboard view error: ' . $e->getMessage(), ['exception' => $e]);
             if (config('app.debug')) {
@@ -247,7 +246,7 @@ class DashboardController extends Controller
             'activeLeases' => $activeLeases,
             'upcomingBills' => $upcomingBills,
             'overdueBills' => $overdueBills,
-            'pendingAmount' => number_format($pendingAmount, 2),
+            'pendingAmount' => (float) $pendingAmount,
             'expiringContracts' => $expiringContracts,
             'recentPayments' => $recentPayments,
         ]);

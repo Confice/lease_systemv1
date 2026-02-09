@@ -9,6 +9,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Stall Leasing Made Simple | {{ config('app.name') }}</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -417,28 +418,33 @@
                 <div class="col-lg-8">
                     <div class="card contact-card">
                         <div class="card-body p-4 p-md-5">
-                            <form>
+                            <div id="contactFormAlert" class="alert d-none mb-3" role="alert"></div>
+                            <form id="landingContactForm" action="{{ route('landing.contact.submit') }}" method="POST">
+                                @csrf
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-6">
-                                        <label class="form-label fw-500">Full name</label>
+                                        <label class="form-label fw-500">Full name <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-end-0"><i class="bx bx-user text-lease-muted"></i></span>
-                                            <input type="text" class="form-control border-start-0" placeholder="Your name">
+                                            <input type="text" name="name" class="form-control border-start-0" placeholder="Your name" value="{{ old('name') }}" required>
                                         </div>
+                                        <div class="invalid-feedback d-block" data-error="name"></div>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-500">Email</label>
+                                        <label class="form-label fw-500">Email <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-end-0"><i class="bx bx-envelope text-lease-muted"></i></span>
-                                            <input type="email" class="form-control border-start-0" placeholder="you@example.com">
+                                            <input type="email" name="email" class="form-control border-start-0" placeholder="you@example.com" value="{{ old('email') }}" required>
                                         </div>
+                                        <div class="invalid-feedback d-block" data-error="email"></div>
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label fw-500">Message</label>
-                                    <textarea class="form-control" rows="4" placeholder="Your message or question about stall leasing..."></textarea>
+                                    <label class="form-label fw-500">Message <span class="text-danger">*</span></label>
+                                    <textarea name="message" class="form-control" rows="4" placeholder="Your message or question about stall leasing..." required>{{ old('message') }}</textarea>
+                                    <div class="invalid-feedback d-block" data-error="message"></div>
                                 </div>
-                                <button type="button" class="btn btn-lease w-100 py-3">Send message</button>
+                                <button type="submit" class="btn btn-lease w-100 py-3" id="contactSubmitBtn">Send message</button>
                             </form>
                         </div>
                     </div>
@@ -531,6 +537,71 @@
                 }
             });
         });
+
+        (function() {
+            var form = document.getElementById('landingContactForm');
+            if (!form) return;
+            var alertEl = document.getElementById('contactFormAlert');
+            var submitBtn = document.getElementById('contactSubmitBtn');
+            var sending = false;
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (sending) return;
+                sending = true;
+                alertEl.classList.add('d-none');
+                alertEl.classList.remove('alert-success', 'alert-danger');
+                [].forEach.call(form.querySelectorAll('[data-error]'), function(el) { el.textContent = ''; });
+                [].forEach.call(form.querySelectorAll('.form-control.is-invalid'), function(el) { el.classList.remove('is-invalid'); });
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Sending…';
+
+                var body = new FormData(form);
+                var token = document.querySelector('meta[name="csrf-token"]');
+                if (token) body.append('_token', token.getAttribute('content'));
+
+                fetch(form.getAttribute('action'), {
+                    method: 'POST',
+                    body: body,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, status: r.status, data: data }; }); })
+                .then(function(result) {
+                    sending = false;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Send message';
+                    if (result.ok && result.data.success) {
+                        alertEl.classList.add('alert-success');
+                        alertEl.textContent = result.data.message || 'Thank you! Your message has been sent.';
+                        alertEl.classList.remove('d-none');
+                        form.reset();
+                    } else {
+                        alertEl.classList.add('alert-danger');
+                        alertEl.textContent = result.data.message || 'Something went wrong. Please try again.';
+                        alertEl.classList.remove('d-none');
+                        if (result.data.errors) {
+                            Object.keys(result.data.errors).forEach(function(field) {
+                                var input = form.querySelector('[name="' + field + '"]');
+                                var errEl = form.querySelector('[data-error="' + field + '"]');
+                                if (input) input.classList.add('is-invalid');
+                                if (errEl) errEl.textContent = (result.data.errors[field] && result.data.errors[field][0]) || '';
+                            });
+                        }
+                    }
+                })
+                .catch(function() {
+                    sending = false;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Send message';
+                    alertEl.classList.add('alert-danger');
+                    alertEl.textContent = 'Something went wrong. Please try again.';
+                    alertEl.classList.remove('d-none');
+                });
+            });
+        })();
     </script>
 </body>
 </html>

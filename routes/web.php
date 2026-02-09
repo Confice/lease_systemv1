@@ -18,6 +18,7 @@ use App\Http\Controllers\BillController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TenantAccountController;
 use App\Http\Controllers\AdminAccountController;
+use App\Http\Controllers\LandingContactController;
 use App\Models\Feedback;
 
 // =======================
@@ -34,6 +35,9 @@ function ensureRole($role) {
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Landing page contact form (public)
+Route::post('/contact', [LandingContactController::class, 'submit'])->name('landing.contact.submit');
 
 // Debug-only: verify basic Blade rendering (no auth)
 if (config('app.debug')) {

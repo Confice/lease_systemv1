@@ -3,7 +3,12 @@
 @section('title','Login')
 
 @section('content')
-<div class="container-xxl d-flex align-items-center justify-content-center min-vh-100">
+<div class="container-xxl d-flex flex-column align-items-center justify-content-center min-vh-100 py-4">
+  <!-- Title above the form (not inside it) -->
+  <div class="text-center mb-3">
+    <h2 class="mb-0 fw-bold" style="color: #7F9267;">LeasexEase Storedge</h2>
+  </div>
+
   <div class="authentication-wrapper authentication-basic w-100">
     <div class="authentication-inner row">
 
@@ -35,6 +40,7 @@
             <div class="mb-3">
               <label class="form-label">Password <span class="text-danger">*</span></label>
               <div class="input-group">
+                <span class="input-group-text"><i class="bx bx-lock-alt"></i></span>
                 <input type="password" name="password" class="form-control" placeholder="••••••••">
                 <span class="input-group-text cursor-pointer toggle-password text-primary" style="color: #6B7A56 !important;"><i class="bx bx-hide"></i></span>
               </div>
@@ -54,6 +60,11 @@
           <p class="text-center mt-3">
             <span>Don’t have an account yet?</span>
             <a href="{{ route('register') }}">Sign up today.</a>
+          </p>
+          <p class="text-center mt-2 mb-0">
+            <a href="{{ url('/') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center">
+              <i class="bx bx-arrow-back me-1"></i> Go back to landing page
+            </a>
           </p>
         </div>
       </div>
