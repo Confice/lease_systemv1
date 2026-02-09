@@ -6,7 +6,6 @@ use App\Models\Stall;
 use App\Models\Requirement;
 use App\Models\Application;
 use App\Models\Document;
-use App\Models\Contract;
 use App\Mail\ProposalSubmitted;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
@@ -203,19 +202,8 @@ class TenantApplicationController extends Controller
                 ]
             );
 
-            // Create contract record for Leases module
-            // Tenant and Start Date will be null until status becomes Requirements Received
-            $contract = Contract::firstOrCreate(
-                [
-                    'userID' => $userId,
-                    'stallID' => $stallId,
-                ],
-                [
-                    'startDate' => null, // Will be set when status becomes Requirements Received
-                    'endDate' => null, // Will be set to 1 year after start date when contract is given
-                    'contractStatus' => 'Active',
-                ]
-            );
+            // Do NOT create a contract here. A contract is only created when the lease manager
+            // approves the application and assigns the tenant to the stall (e.g. via Stalls > Assign Tenant).
 
             DB::commit();
 

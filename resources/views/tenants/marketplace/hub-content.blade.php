@@ -548,11 +548,15 @@ $(function(){
       } else {
         bodyHtml += `
           <div class="stall-info-item">
-            <div class="stall-info-label">Application Availability</div>
-            <div class="stall-info-value"><em style="color: #6c757d;">We're not accepting applications for this stall at the moment.</em></div>
+            <div class="stall-info-label">Application</div>
+            <div class="stall-info-value"><em style="color: #7F9267;">Vacant – applications accepted</em></div>
           </div>
         `;
-        cardFooter.html('');
+        if (!stall.hasActiveApplication || stall.canReapply) {
+          cardFooter.html(`<button class="btn btn-sm btn-primary w-100" onclick="rentStall(${stall.stallID})">Apply for this stall</button>`);
+        } else {
+          cardFooter.html(`<div class="text-center text-muted small mt-2">You already have an active application for this stall.</div>`);
+        }
       }
     }
     

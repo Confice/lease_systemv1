@@ -401,11 +401,11 @@ $(function(){
       } else {
         bodyHtml += `
           <div class="stall-info-item">
-            <div class="stall-info-label">Application Availability</div>
-            <div class="stall-info-value"><em style="color: #6c757d;">We're not accepting applications for this stall at the moment.</em></div>
+            <div class="stall-info-label">Application</div>
+            <div class="stall-info-value"><em style="color: #7F9267;">Vacant stall</em></div>
           </div>
         `;
-        cardFooter.html('');
+        cardFooter.html(`<button class="btn btn-sm btn-primary w-100 view-applications-btn" data-stall-id="${stall.stallID}">View Applications</button>`);
       }
     }
     

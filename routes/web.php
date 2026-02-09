@@ -79,6 +79,9 @@ Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->middl
 Route::get('/reset-password/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 
+// Change password (send link to current user's email) - requires login
+Route::post('/send-password-change-link', [AuthController::class, 'sendPasswordChangeLink'])->middleware('auth')->name('password.change.link');
+
 // =======================
 // Lease Manager (Admin) Side
 // =======================

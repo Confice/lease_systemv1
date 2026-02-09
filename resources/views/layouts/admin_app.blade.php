@@ -199,7 +199,7 @@
                       <span class="badge rounded-pill bg-danger badge-dot position-absolute top-0 end-0" style="width: 8px; height: 8px;"></span>
                     @endif
                   </a>
-                  <ul class="dropdown-menu dropdown-menu-end py-0 w-100" style="min-width: 320px; max-width: 360px;">
+                  <ul class="dropdown-menu dropdown-menu-end py-0 notifications-dropdown">
                     <li class="dropdown-header d-flex align-items-center justify-content-between py-3">
                       <h6 class="mb-0 text-body">Recent activity</h6>
                       <a href="{{ route('admins.activity-logs.index') }}" class="small">View all</a>
@@ -207,12 +207,12 @@
                     @if(!empty($recentActivityFormatted))
                       @foreach(array_slice($recentActivityFormatted, 0, 5) as $item)
                         <li>
-                          <a class="dropdown-item d-flex py-2" href="{{ $item['url'] ?? '#' }}">
-                            <span class="flex-grow-1">
-                              <span class="d-block small text-body">{{ $item['message'] }}</span>
+                          <a class="dropdown-item d-flex align-items-start gap-2 py-2 text-wrap" href="{{ $item['url'] ?? '#' }}">
+                            <span class="notification-message flex-grow-1 min-w-0">
+                              <span class="d-block small text-body text-break">{{ $item['message'] }}</span>
                               <small class="text-muted">{{ $item['created_at']->diffForHumans() }}</small>
                             </span>
-                            <i class="bx bx-right-arrow-alt text-muted ms-2"></i>
+                            <i class="bx bx-right-arrow-alt text-muted flex-shrink-0 mt-1"></i>
                           </a>
                         </li>
                       @endforeach

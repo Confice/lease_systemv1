@@ -1182,3 +1182,25 @@ button[style*="#7F9267"]:hover {
   background-color: #6B7A56 !important;
 }
 
+/* Notifications dropdown – keep text inside, dynamic width, wrap long messages */
+.notifications-dropdown {
+  min-width: 280px;
+  max-width: min(380px, 95vw);
+  width: max-content;
+}
+.notifications-dropdown .dropdown-item {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+.notifications-dropdown .notification-message {
+  min-width: 0;
+  overflow: hidden;
+}
+.notifications-dropdown .notification-message .text-break {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.35;
+}
+

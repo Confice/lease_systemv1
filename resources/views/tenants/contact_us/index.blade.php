@@ -147,6 +147,46 @@
   </div>
 </div>
 
+<!-- Send a message form -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card contact-card">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-3">
+          <i class="bx bx-send me-2"></i>Send us a message
+        </h5>
+        <p class="text-muted mb-3">Send your question or feedback and we'll get back to you.</p>
+        <div id="tenantContactFormAlert" class="alert d-none mb-3" role="alert"></div>
+        <form id="tenantContactForm" action="{{ route('landing.contact.submit') }}" method="POST">
+          @csrf
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Full name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" value="{{ auth()->user() ? trim((auth()->user()->firstName ?? '') . ' ' . (auth()->user()->lastName ?? '')) : '' }}" required>
+              <div class="invalid-feedback d-block" data-error="name"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email <span class="text-danger">*</span></label>
+              <input type="email" name="email" class="form-control" value="{{ auth()->user()->email ?? '' }}" required>
+              <div class="invalid-feedback d-block" data-error="email"></div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Message <span class="text-danger">*</span></label>
+              <textarea name="message" class="form-control" rows="4" placeholder="Your message or question..." required></textarea>
+              <div class="invalid-feedback d-block" data-error="message"></div>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary" id="tenantContactSubmitBtn">
+                <i class="bx bx-send me-1"></i> Send message
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Additional Information Section -->
 <div class="row mt-4">
   <div class="col-12">
@@ -172,4 +212,64 @@
   </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+$(function() {
+  var form = $('#tenantContactForm');
+  if (!form.length) return;
+  var alertEl = $('#tenantContactFormAlert');
+  var submitBtn = $('#tenantContactSubmitBtn');
+  var sending = false;
+  form.on('submit', function(e) {
+    e.preventDefault();
+    if (sending) return;
+    sending = true;
+    alertEl.addClass('d-none').removeClass('alert-success alert-danger');
+    form.find('[data-error]').text('');
+    form.find('.form-control.is-invalid').removeClass('is-invalid');
+    submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Sending…');
+    $.ajax({
+      url: form.attr('action'),
+      method: 'POST',
+      data: form.serialize(),
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+      success: function(res) {
+        if (res.success) {
+          alertEl.removeClass('alert-danger').addClass('alert-success').text(res.message || 'Thank you! Your message has been sent.').removeClass('d-none');
+          form[0].reset();
+        } else {
+          alertEl.removeClass('alert-success').addClass('alert-danger').text(res.message || 'Something went wrong.').removeClass('d-none');
+          if (res.errors) {
+            $.each(res.errors, function(field, msgs) {
+              var input = form.find('[name="' + field + '"]');
+              var errEl = form.find('[data-error="' + field + '"]');
+              if (input.length) input.addClass('is-invalid');
+              if (errEl.length && msgs && msgs[0]) errEl.text(msgs[0]);
+            });
+          }
+        }
+      },
+      error: function(xhr) {
+        var res = xhr.responseJSON || {};
+        var msg = res.message || 'Something went wrong. Please try again.';
+        alertEl.removeClass('alert-success').addClass('alert-danger').text(msg).removeClass('d-none');
+        if (res.errors) {
+          $.each(res.errors, function(field, msgs) {
+            var input = form.find('[name="' + field + '"]');
+            var errEl = form.find('[data-error="' + field + '"]');
+            if (input.length) input.addClass('is-invalid');
+            if (errEl.length && msgs && msgs[0]) errEl.text(msgs[0]);
+          });
+        }
+      },
+      complete: function() {
+        sending = false;
+        submitBtn.prop('disabled', false).html('<i class="bx bx-send me-1"></i> Send message');
+      }
+    });
+  });
+});
+</script>
+@endpush
 

@@ -330,6 +330,40 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Send password change link to the authenticated user's email (same flow as forgot password).
+     * Used from Settings when user wants to change password via email link.
+     */
+    public function sendPasswordChangeLink(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $token = Str::random(64);
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $user->email],
+            ['token' => $token, 'created_at' => now()]
+        );
+        $resetUrl = url("/reset-password/{$token}");
+
+        try {
+            Mail::to($user->email)->send(new \App\Mail\ResetPassword($user, $resetUrl));
+        } catch (\Exception $e) {
+            Log::error('Failed to send password change email: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'We could not send the email right now. Please try again later.',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'We\'ve sent you an email with a link to change your password. Please check your inbox.',
+        ]);
+    }
+
     // Show reset password form
     public function showResetPasswordForm($token)
     {
