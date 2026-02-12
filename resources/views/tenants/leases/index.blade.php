@@ -448,6 +448,18 @@ $(function(){
   replaceLengthSelectWithDropdown();
   table.on('draw', replaceLengthSelectWithDropdown);
 
+  // Export CSV
+  $('#exportCsv').on('click', function(e) {
+    e.preventDefault();
+    window.location.href = "{{ route('tenants.leases.export.csv') }}";
+  });
+
+  // Export PDF (print)
+  $('#exportPdf').on('click', function(e) {
+    e.preventDefault();
+    window.open("{{ route('tenants.leases.print') }}", '_blank');
+  });
+
   // Search
   $('#leasesSearch').on('keyup', function() {
     table.ajax.reload();

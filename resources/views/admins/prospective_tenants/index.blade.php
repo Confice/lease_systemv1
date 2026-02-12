@@ -312,7 +312,7 @@ $(function(){
   $(document).on('click', '.btn-more', function() {
     const stallId = $(this).data('stall-id');
     // Navigate to view applications for this stall
-    window.location.href = "{{ route('admins.prospective-tenants.applications', ':stallId') }}".replace(':stallId', stallId);
+    window.location.href = "{{ route('admins.prospective-tenants.applications', ':stallId') }}".replace(':stallId', stallId) + "?from=prospective";
   });
   
   // Load stalls on page load

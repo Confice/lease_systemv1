@@ -54,7 +54,7 @@
               @endif
             @endif
             <div class="col-md-6 mb-2">
-              <strong>Start Date:</strong> {{ $contract->startDate->format('M d, Y') }}
+              <strong>Start Date:</strong> {{ $contract->startDate ? $contract->startDate->format('M d, Y') : 'N/A' }}
             </div>
             <div class="col-md-6 mb-2">
               <strong>End Date:</strong> {{ $contract->endDate ? $contract->endDate->format('M d, Y') : 'N/A' }}

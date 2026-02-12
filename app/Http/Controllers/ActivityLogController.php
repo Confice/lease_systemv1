@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ActivityLogController extends Controller
 {
@@ -93,6 +94,50 @@ class ActivityLogController extends Controller
             'recordsFiltered' => $totalRecords,
             'data' => $data,
         ]);
+    }
+
+    /**
+     * Export activity logs as CSV
+     */
+    public function exportCsv()
+    {
+        $fileName = 'activity_logs_' . now()->format('Ymd_His') . '.csv';
+        $logs = ActivityLog::with('user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        $response = new StreamedResponse(function () use ($logs) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['ID', 'Action Type', 'Entity', 'Entity ID', 'Description', 'User', 'Email', 'Created At']);
+            foreach ($logs as $log) {
+                $user = $log->user;
+                fputcsv($handle, [
+                    $log->activityID,
+                    $log->actionType,
+                    ucfirst($log->entity),
+                    $log->entityID,
+                    $log->description ?? '-',
+                    $user ? trim(($user->firstName ?? '') . ' ' . ($user->lastName ?? '')) : 'Unknown',
+                    $user ? $user->email : 'N/A',
+                    $log->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+            fclose($handle);
+        });
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+        return $response;
+    }
+
+    /**
+     * Print activity logs (for PDF)
+     */
+    public function print()
+    {
+        $logs = ActivityLog::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit(500)
+            ->get();
+        return view('admins.activity_logs.print', compact('logs'));
     }
 }
 

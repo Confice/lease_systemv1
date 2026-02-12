@@ -310,6 +310,18 @@ $(function(){
   replaceLengthSelectWithDropdown();
   table.on('draw', replaceLengthSelectWithDropdown);
 
+  // Export CSV
+  $('#exportCsv').on('click', function(e) {
+    e.preventDefault();
+    window.location.href = "{{ route('tenants.bills.export.csv') }}";
+  });
+
+  // Export PDF (print)
+  $('#exportPdf').on('click', function(e) {
+    e.preventDefault();
+    window.open("{{ route('tenants.bills.print') }}", '_blank');
+  });
+
   // Search
   $('#billsSearch').on('keyup', function() {
     table.ajax.reload();

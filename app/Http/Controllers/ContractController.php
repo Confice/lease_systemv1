@@ -14,6 +14,7 @@ use App\Http\Requests\RenewContractRequest;
 use App\Http\Requests\TerminateContractRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
@@ -123,9 +124,11 @@ class ContractController extends Controller
     public function applications($stall)
     {
         $stallModel = Stall::with('marketplace')->findOrFail($stall);
-        
+        $from = request('from', 'prospective'); // 'marketplace' or 'prospective'
+
         return view('admins.prospective_tenants.applications', [
-            'stall' => $stallModel
+            'stall' => $stallModel,
+            'from'  => $from,
         ]);
     }
 
@@ -448,13 +451,15 @@ class ContractController extends Controller
                 ], 404);
             }
 
-            // Check if status is Proposal Received
-            if ($applicationModel->appStatus !== 'Proposal Received') {
+            // Allow Proposal Received (initial schedule) or Presentation Scheduled (reschedule)
+            if (!in_array($applicationModel->appStatus, ['Proposal Received', 'Presentation Scheduled'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Presentation can only be scheduled for applications with "Proposal Received" status.'
+                    'message' => 'Presentation can only be scheduled or rescheduled for applications with "Proposal Received" or "Presentation Scheduled" status.'
                 ], 400);
             }
+
+            $isReschedule = $applicationModel->appStatus === 'Presentation Scheduled';
 
             // Combine date and time
             $presentationDateTime = $request->presentation_date . ' ' . $request->presentation_time;
@@ -469,7 +474,7 @@ class ContractController extends Controller
             ]);
 
             try {
-                ActivityLogService::logUpdate('applications', $applicationModel->applicationID, 'Presentation scheduled.');
+                ActivityLogService::logUpdate('applications', $applicationModel->applicationID, $isReschedule ? 'Presentation rescheduled.' : 'Presentation scheduled.');
             } catch (\Exception $e) {
                 \Log::warning("Failed to log schedule presentation: " . $e->getMessage());
             }
@@ -498,7 +503,9 @@ class ContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Presentation scheduled successfully. Email notification sent to tenant.'
+                'message' => $isReschedule
+                    ? 'Presentation rescheduled successfully. Email notification sent to tenant.'
+                    : 'Presentation scheduled successfully. Email notification sent to tenant.'
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1265,6 +1272,181 @@ class ContractController extends Controller
             \Log::error("Tenant leases data error: " . $e->getMessage());
             return response()->json(['data' => [], 'error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Export admin leases as CSV
+     */
+    public function adminLeasesExportCsv()
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            abort(403, 'Unauthorized');
+        }
+        $fileName = 'leases_' . now()->format('Ymd_His') . '.csv';
+        $query = Contract::with(['user', 'stall.marketplace'])
+            ->whereNull('deleted_at')
+            ->orderBy('startDate', 'desc');
+        $response = new StreamedResponse(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Contract ID', 'Tenant', 'Stall', 'Marketplace', 'Monthly Rent', 'Start Date', 'End Date', 'Days Remaining', 'Status']);
+            $query->chunk(200, function ($contracts) use ($handle) {
+                foreach ($contracts as $contract) {
+                    $tenant = $contract->user;
+                    $stall = $contract->stall;
+                    $marketplace = $stall->marketplace ?? null;
+                    $daysRemaining = $contract->endDate ? now()->diffInDays($contract->endDate, false) : null;
+                    fputcsv($handle, [
+                        $contract->contractID,
+                        $tenant ? trim(($tenant->firstName ?? '') . ' ' . ($tenant->lastName ?? '')) : 'N/A',
+                        $stall ? strtoupper($stall->stallNo) : 'N/A',
+                        $marketplace ? $marketplace->marketplace : 'N/A',
+                        $stall ? number_format($stall->rentalFee, 2) : '0.00',
+                        $contract->startDate ? $contract->startDate->format('Y-m-d') : 'N/A',
+                        $contract->endDate ? $contract->endDate->format('Y-m-d') : 'No end date',
+                        $daysRemaining !== null ? $daysRemaining : '',
+                        $contract->contractStatus,
+                    ]);
+                }
+            });
+            fclose($handle);
+        });
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+        return $response;
+    }
+
+    /**
+     * Print admin leases (for PDF)
+     */
+    public function adminLeasesPrint()
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            abort(403, 'Unauthorized');
+        }
+        $contracts = Contract::with(['user', 'stall.marketplace'])
+            ->whereNull('deleted_at')
+            ->orderBy('startDate', 'desc')
+            ->get();
+        return view('admins.leases.print', compact('contracts'));
+    }
+
+    /**
+     * Export tenant leases as CSV
+     */
+    public function tenantLeasesExportCsv()
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Tenant') {
+            abort(403, 'Unauthorized');
+        }
+        $fileName = 'my_leases_' . now()->format('Ymd_His') . '.csv';
+        $query = Contract::with(['stall.marketplace'])
+            ->whereNull('deleted_at')
+            ->where('userID', $user->id)
+            ->orderBy('startDate', 'desc');
+        $response = new StreamedResponse(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Contract ID', 'Stall', 'Marketplace', 'Monthly Rent', 'Start Date', 'End Date', 'Days Remaining', 'Status']);
+            $query->chunk(200, function ($contracts) use ($handle) {
+                foreach ($contracts as $contract) {
+                    $stall = $contract->stall;
+                    $marketplace = $stall->marketplace ?? null;
+                    $daysRemaining = $contract->endDate ? now()->diffInDays($contract->endDate, false) : null;
+                    fputcsv($handle, [
+                        $contract->contractID,
+                        $stall ? strtoupper($stall->stallNo) : 'N/A',
+                        $marketplace ? $marketplace->marketplace : 'N/A',
+                        $stall ? number_format($stall->rentalFee, 2) : '0.00',
+                        $contract->startDate ? $contract->startDate->format('Y-m-d') : 'N/A',
+                        $contract->endDate ? $contract->endDate->format('Y-m-d') : 'No end date',
+                        $daysRemaining !== null ? $daysRemaining : '',
+                        $contract->contractStatus,
+                    ]);
+                }
+            });
+            fclose($handle);
+        });
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+        return $response;
+    }
+
+    /**
+     * Print tenant leases (for PDF)
+     */
+    public function tenantLeasesPrint()
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Tenant') {
+            abort(403, 'Unauthorized');
+        }
+        $contracts = Contract::with(['stall.marketplace'])
+            ->whereNull('deleted_at')
+            ->where('userID', $user->id)
+            ->orderBy('startDate', 'desc')
+            ->get();
+        return view('tenants.leases.print', compact('contracts'));
+    }
+
+    /**
+     * Export applications for a stall as CSV (Prospective Tenants)
+     */
+    public function applicationsExportCsv($stall)
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            abort(403, 'Unauthorized');
+        }
+        $stallModel = Stall::where('stallID', $stall)->whereNull('deleted_at')->firstOrFail();
+        $fileName = 'applications_' . strtoupper($stallModel->stallNo ?? $stall) . '_' . now()->format('Ymd_His') . '.csv';
+        $applications = Application::with(['user', 'stall.marketplace'])
+            ->where('stallID', $stall)
+            ->whereNull('deleted_at')
+            ->where('appStatus', '!=', 'Withdrawn')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        $response = new StreamedResponse(function () use ($applications) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Application ID', 'Tenant', 'Email', 'Applied At', 'Status']);
+            foreach ($applications as $app) {
+                $tenant = $app->user;
+                fputcsv($handle, [
+                    $app->applicationID,
+                    $tenant ? trim(($tenant->firstName ?? '') . ' ' . ($tenant->lastName ?? '')) : 'N/A',
+                    $tenant ? $tenant->email : 'N/A',
+                    $app->created_at ? $app->created_at->format('Y-m-d H:i') : '',
+                    $app->appStatus,
+                ]);
+            }
+            fclose($handle);
+        });
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+        return $response;
+    }
+
+    /**
+     * Print applications for a stall (Prospective Tenants)
+     */
+    public function applicationsPrint($stall)
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            abort(403, 'Unauthorized');
+        }
+        $stallModel = Stall::where('stallID', $stall)->whereNull('deleted_at')->with('marketplace')->firstOrFail();
+        $applications = Application::with(['user', 'stall.marketplace'])
+            ->where('stallID', $stall)
+            ->whereNull('deleted_at')
+            ->where('appStatus', '!=', 'Withdrawn')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return view('admins.prospective_tenants.print', [
+            'stall' => $stallModel,
+            'applications' => $applications,
+        ]);
     }
 }
 

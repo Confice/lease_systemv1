@@ -742,7 +742,7 @@ $(function(){
         } else if(d.stallStatus === 'Vacant') {
           // Check if application deadline is set
           const hasApplicationDeadline = d.applicationDeadline && d.applicationDeadline !== null && d.applicationDeadline !== '';
-          const applicationUrl = hasApplicationDeadline ? `/tenants/prospective/${d.stallID}/applications` : '#';
+          const applicationUrl = hasApplicationDeadline ? `/tenants/prospective/${d.stallID}/applications?from=prospective` : '#';
           const applicationClass = hasApplicationDeadline ? 'dropdown-item text-secondary' : 'dropdown-item text-secondary disabled';
           const applicationStyle = hasApplicationDeadline ? '' : 'pointer-events: none; opacity: 0.5; cursor: not-allowed;';
           

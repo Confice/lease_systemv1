@@ -68,17 +68,22 @@
 @section('content')
 <div class="card submission-card">
   <div class="card-body">
-      <!-- Header with Back Button and Title -->
+      <!-- Header with Back Button and Title (back goes to marketplace map when from=marketplace, or My Applications when from=stalls) -->
+      @php
+        $tenantFrom = request('from', 'marketplace');
+        $tenantBackUrl = $tenantFrom === 'stalls' ? route('tenants.stalls.index') : route('tenants.marketplace.index');
+        $tenantBackLabel = $tenantFrom === 'stalls' ? 'Back to My Applications' : 'Back to Marketplace Map';
+      @endphp
       <div class="d-flex align-items-center justify-content-between mb-4" style="margin-top: -1rem !important; position: relative;">
-        <a href="{{ route('tenants.marketplace.index') }}" class="btn btn-label-primary">
-          <i class="bx bx-arrow-back me-1"></i> Back
+        <a href="{{ $tenantBackUrl }}" class="btn btn-label-primary">
+          <i class="bx bx-arrow-back me-1"></i> {{ $tenantBackLabel }}
         </a>
         <h4 class="mb-0 page-title-green fw-bold position-absolute start-50 translate-middle-x">
           <i class="bx bx-clipboard me-2"></i> Submission of Requirements
         </h4>
         <div style="width: 1px; visibility: hidden;">
-          <a href="{{ route('tenants.marketplace.index') }}" class="btn btn-label-primary">
-            <i class="bx bx-arrow-back me-1"></i> Back
+          <a href="{{ $tenantBackUrl }}" class="btn btn-label-primary">
+            <i class="bx bx-arrow-back me-1"></i> {{ $tenantBackLabel }}
           </a>
         </div>
       </div>

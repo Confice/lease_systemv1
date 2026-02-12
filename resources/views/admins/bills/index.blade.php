@@ -429,6 +429,18 @@ $(function(){
     });
   });
 
+  // Export CSV
+  $('#exportCsv').on('click', function(e) {
+    e.preventDefault();
+    window.location.href = "{{ route('admins.bills.export.csv') }}";
+  });
+
+  // Export PDF (print)
+  $('#exportPdf').on('click', function(e) {
+    e.preventDefault();
+    window.open("{{ route('admins.bills.print') }}", '_blank');
+  });
+
   // Delete bill permanently
   $(document).on('click', '.delete-bill', function() {
     const billId = $(this).data('id');

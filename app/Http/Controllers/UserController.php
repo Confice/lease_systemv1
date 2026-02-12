@@ -3,6 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Contract;
+use App\Models\Bill;
+use App\Models\Application;
+use App\Models\Document;
+use App\Models\Feedback;
+use App\Models\Store;
+use App\Models\Stall;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -230,10 +238,72 @@ class UserController extends Controller
         return response()->json(['success' => true, 'message' => 'User successfully updated!']);
     }
 
+    /**
+     * Delete a user and permanently remove all related records (contracts, bills,
+     * applications, documents, feedback, stores, activity logs). Stalls are
+     * vacated (status + store cleared), not deleted.
+     */
     public function destroy(User $user)
     {
-        $user->delete();
-        return response()->json(['success' => true, 'message' => 'User deleted.']);
+        DB::beginTransaction();
+        try {
+            $userId = $user->id;
+
+            // 1. User's contracts: vacate stalls, clear dependents and FKs, then delete contracts
+            $contracts = Contract::where('userID', $userId)->get();
+            foreach ($contracts as $contract) {
+                $stall = Stall::find($contract->stallID);
+                if ($stall) {
+                    $stall->update([
+                        'stallStatus' => 'Vacant',
+                        'storeID'     => null,
+                    ]);
+                }
+                // Clear other contracts pointing to this one so FK does not block delete
+                Contract::where('renewedFrom', $contract->contractID)->update(['renewedFrom' => null]);
+                Application::where('contractID', $contract->contractID)->update(['contractID' => null]);
+                Bill::where('contractID', $contract->contractID)->forceDelete();
+                Feedback::where('contractID', $contract->contractID)->delete();
+                Document::where('contractID', $contract->contractID)->forceDelete();
+                $contract->forceDelete();
+            }
+
+            // 2. Documents by user (e.g. application uploads)
+            Document::where('userID', $userId)->forceDelete();
+
+            // 3. Applications by user
+            Application::where('userID', $userId)->forceDelete();
+
+            // 4. User's stores: clear stall references then delete stores
+            $storeIds = Store::where('userID', $userId)->pluck('storeID');
+            if ($storeIds->isNotEmpty()) {
+                Stall::whereIn('storeID', $storeIds)->update(['storeID' => null, 'stallStatus' => 'Vacant']);
+                Store::where('userID', $userId)->delete();
+            }
+
+            // 5. Activity logs for this user
+            ActivityLog::where('userID', $userId)->delete();
+
+            // 6. Password reset tokens for this email
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+
+            // 7. Soft-delete the user
+            $user->delete();
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'User and all related records have been removed.']);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Log::error('User delete cascade failed: ' . $e->getMessage(), ['user_id' => $user->id ?? null, 'trace' => $e->getTraceAsString()]);
+            $message = 'Failed to delete user and related records. Please try again or contact support.';
+            if (config('app.debug')) {
+                $message .= ' (' . $e->getMessage() . ')';
+            }
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], 500);
+        }
     }
 
     public function archiveMultiple(Request $request)

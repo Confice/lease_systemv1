@@ -149,13 +149,17 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     // Activity Logs
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('admins.activity-logs.index');
     Route::get('/activity-logs/data', [ActivityLogController::class, 'data'])->name('admins.activity-logs.data');
+    Route::get('/activity-logs/export/csv', [ActivityLogController::class, 'exportCsv'])->name('admins.activity-logs.export.csv');
+    Route::get('/activity-logs/print', [ActivityLogController::class, 'print'])->name('admins.activity-logs.print');
 
     // Archived Items
     Route::get('/archived-items', [ArchivedItemsController::class, 'index'])->name('admins.archived-items.index');
     Route::get('/archived-items/data', [ArchivedItemsController::class, 'data'])->name('admins.archived-items.data');
     Route::post('/archived-items/restore', [ArchivedItemsController::class, 'restore'])->name('admins.archived-items.restore');
     Route::post('/archived-items/delete', [ArchivedItemsController::class, 'destroy'])->name('admins.archived-items.delete');
+    Route::post('/archived-items/delete-all', [ArchivedItemsController::class, 'deleteAll'])->name('admins.archived-items.delete-all');
     Route::get('/archived-items/export/csv', [ArchivedItemsController::class, 'exportCsv'])->name('admins.archived-items.export.csv');
+    Route::get('/archived-items/print', [ArchivedItemsController::class, 'print'])->name('admins.archived-items.print');
 
     // Prospective Tenants (Contracts moved here)
     Route::get('/tenants/prospective', [ContractController::class, 'index'])->name('admins.prospective-tenants.index');
@@ -171,6 +175,8 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     Route::post('/tenants/prospective/applications/{application}/reopen', [ContractController::class, 'reopenApplication'])->name('admins.prospective-tenants.reopen');
     Route::delete('/tenants/prospective/applications/{application}', [ContractController::class, 'deleteApplication'])->name('admins.prospective-tenants.application.delete');
     Route::post('/tenants/prospective/applications/{application}/remove-tenant', [ContractController::class, 'removeApprovedTenant'])->name('admins.prospective-tenants.application.remove-tenant');
+    Route::get('/tenants/prospective/{stall}/applications/export/csv', [ContractController::class, 'applicationsExportCsv'])->name('admins.prospective-tenants.applications.export.csv');
+    Route::get('/tenants/prospective/{stall}/applications/print', [ContractController::class, 'applicationsPrint'])->name('admins.prospective-tenants.applications.print');
     
     // Tenant Feedback (Admin view, detail & archive)
     Route::get('/tenant-feedback', [FeedbackController::class, 'adminIndex'])->name('admins.feedback.index');
@@ -185,6 +191,8 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     Route::post('/admins/bills/{bill}/archive', [BillController::class, 'archive'])->name('admins.bills.archive');
     Route::delete('/admins/bills/{bill}', [BillController::class, 'destroy'])->name('admins.bills.destroy');
     Route::post('/admins/bills/generate', [BillController::class, 'generateMonthlyBills'])->name('admins.bills.generate');
+    Route::get('/admins/bills/export/csv', [BillController::class, 'adminExportCsv'])->name('admins.bills.export.csv');
+    Route::get('/admins/bills/print', [BillController::class, 'adminPrint'])->name('admins.bills.print');
 
     // Leases Management
     Route::get('/admins/leases', [ContractController::class, 'leasesIndex'])->name('admins.leases.index');
@@ -195,6 +203,8 @@ Route::middleware(['auth', 'role:Lease Manager'])->group(function() {
     Route::get('/admins/leases/{contract}/terminate', [ContractController::class, 'showTerminateForm'])->name('admins.leases.show-terminate');
     Route::post('/admins/leases/{contract}/terminate', [ContractController::class, 'terminate'])->name('admins.leases.terminate');
     Route::post('/admins/leases/{contract}/archive', [ContractController::class, 'archive'])->name('admins.leases.archive');
+    Route::get('/admins/leases/export/csv', [ContractController::class, 'adminLeasesExportCsv'])->name('admins.leases.export.csv');
+    Route::get('/admins/leases/print', [ContractController::class, 'adminLeasesPrint'])->name('admins.leases.print');
 
     // Lease Manager Profile & Settings
     Route::get('/admins/profile', [AdminAccountController::class, 'profile'])->name('admins.profile');
@@ -282,10 +292,14 @@ Route::middleware(['auth'])->group(function() {
         Route::get('/bills/data', [BillController::class, 'tenantData'])->name('tenants.bills.data');
         Route::get('/bills/{bill}/upload', [BillController::class, 'showUploadForm'])->name('tenants.bills.upload');
         Route::post('/bills/{bill}/upload-proof', [BillController::class, 'uploadPaymentProof'])->name('tenants.bills.upload-proof');
+        Route::get('/bills/export/csv', [BillController::class, 'tenantExportCsv'])->name('tenants.bills.export.csv');
+        Route::get('/bills/print', [BillController::class, 'tenantPrint'])->name('tenants.bills.print');
 
         // Tenant Leases
         Route::get('/leases', [ContractController::class, 'tenantLeasesIndex'])->name('tenants.leases.index');
         Route::get('/leases/data', [ContractController::class, 'tenantLeasesData'])->name('tenants.leases.data');
+        Route::get('/leases/export/csv', [ContractController::class, 'tenantLeasesExportCsv'])->name('tenants.leases.export.csv');
+        Route::get('/leases/print', [ContractController::class, 'tenantLeasesPrint'])->name('tenants.leases.print');
 
         // Tenant Profile & Settings
         Route::get('/tenants/profile', [TenantAccountController::class, 'profile'])->name('tenants.profile');

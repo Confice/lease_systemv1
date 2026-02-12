@@ -352,31 +352,13 @@ $(function(){
     // CSV Export
     $('#exportCsv').on('click', function(e) {
         e.preventDefault();
-        Swal.fire({
-            icon: 'info',
-            title: 'Export CSV',
-            text: 'CSV export functionality will be implemented soon.',
-            timer: 2000,
-            showConfirmButton: false,
-            animation: false,
-            showClass: { popup: '' },
-            hideClass: { popup: '' }
-        });
+        window.location.href = "{{ route('admins.activity-logs.export.csv') }}";
     });
 
-    // PDF Export
+    // PDF Export (print)
     $('#exportPdf').on('click', function(e) {
         e.preventDefault();
-        Swal.fire({
-            icon: 'info',
-            title: 'Export PDF',
-            text: 'PDF export functionality will be implemented soon.',
-            timer: 2000,
-            showConfirmButton: false,
-            animation: false,
-            showClass: { popup: '' },
-            hideClass: { popup: '' }
-        });
+        window.open("{{ route('admins.activity-logs.print') }}", '_blank');
     });
 });
 </script>

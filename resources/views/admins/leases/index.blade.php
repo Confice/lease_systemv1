@@ -531,6 +531,18 @@ $(function(){
     table.ajax.reload();
   });
 
+  // Export CSV
+  $('#exportCsv').on('click', function(e) {
+    e.preventDefault();
+    window.location.href = "{{ route('admins.leases.export.csv') }}";
+  });
+
+  // Export PDF (print)
+  $('#exportPdf').on('click', function(e) {
+    e.preventDefault();
+    window.open("{{ route('admins.leases.print') }}", '_blank');
+  });
+
   // Status tabs
   $('#statusTabs').on('click', '.status-tab', function() {
     $('#statusTabs .status-tab').removeClass('active');

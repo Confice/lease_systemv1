@@ -172,9 +172,15 @@
 
 @section('content')
 <div class="mb-3">
-    <a href="{{ route('admins.prospective-tenants.index') }}" class="btn btn-outline-secondary">
-        <i class="bx bx-arrow-back me-1"></i> Back to Prospective Tenants
-    </a>
+    @if (($from ?? 'prospective') === 'marketplace')
+        <a href="{{ route('admins.marketplace.index') }}" class="btn btn-outline-secondary">
+            <i class="bx bx-arrow-back me-1"></i> Back to Marketplace Map
+        </a>
+    @else
+        <a href="{{ route('admins.prospective-tenants.index') }}" class="btn btn-outline-secondary">
+            <i class="bx bx-arrow-back me-1"></i> Back to Prospective Tenants
+        </a>
+    @endif
 </div>
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -566,6 +572,12 @@ $(function(){
         } else if (status === 'Withdrawn') {
           menuItems = `
             <li>
+              <a href="javascript:;" class="dropdown-item text-danger btn-remove-withdrawn" data-id="${d.applicationID}">
+                <i class="bx bx-user-x me-1"></i> Remove from list
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
               <a href="javascript:;" class="dropdown-item text-secondary btn-reopen" data-id="${d.applicationID}">
                 <i class="bx bx-refresh me-1"></i> Reopen Submission
               </a>
@@ -573,12 +585,6 @@ $(function(){
             <li>
               <a href="javascript:;" class="dropdown-item text-secondary btn-view-notice" data-id="${d.applicationID}">
                 <i class="bx bx-file me-1"></i> View Notice
-              </a>
-            </li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <a href="javascript:;" class="dropdown-item text-danger btn-delete-proposal" data-id="${d.applicationID}">
-                <i class="bx bx-trash me-1"></i> Delete Proposal
               </a>
             </li>
           `;
@@ -893,29 +899,13 @@ $(function(){
   // Export CSV
   $('#exportCsv').on('click', function(e) {
     e.preventDefault();
-    // TODO: Implement CSV export
-    Swal.fire({
-      icon: 'info',
-      title: 'Export CSV',
-      text: 'CSV export functionality will be implemented.',
-      toast: true,
-      position: 'top',
-      timer: 2000
-    });
+    window.location.href = "{{ route('admins.prospective-tenants.applications.export.csv', $stall->stallID) }}";
   });
 
-  // Export PDF
+  // Export PDF (print)
   $('#exportPdf').on('click', function(e) {
     e.preventDefault();
-    // TODO: Implement PDF export
-    Swal.fire({
-      icon: 'info',
-      title: 'Export PDF',
-      text: 'PDF export functionality will be implemented.',
-      toast: true,
-      position: 'top',
-      timer: 2000
-    });
+    window.open("{{ route('admins.prospective-tenants.applications.print', $stall->stallID) }}", '_blank');
   });
 
   // Add New Record: open modal and load eligible tenants
@@ -1774,7 +1764,9 @@ $(function(){
     
     // Disable submit button
     const submitBtn = $(form).find('button[type="submit"]');
-    submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Scheduling...');
+    const isReschedule = submitBtn.text().includes('Reschedule');
+    const originalBtnHtml = submitBtn.html();
+    submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> ' + (isReschedule ? 'Rescheduling...' : 'Scheduling...'));
     
     // Submit via AJAX
     $.ajax({
@@ -1851,7 +1843,7 @@ $(function(){
         });
       },
       complete: function() {
-        submitBtn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Schedule');
+        submitBtn.prop('disabled', false).html(originalBtnHtml || '<i class="bx bx-check me-1"></i> Schedule');
       }
     });
   });
@@ -1964,17 +1956,74 @@ $(function(){
     });
   });
 
-  // Reschedule
+  // Reschedule - opens same modal as Schedule Presentation, pre-fills current date/time if available
   $(document).on('click', '.btn-reschedule', function() {
     const applicationId = $(this).data('id');
-    Swal.fire({
-      icon: 'info',
-      title: 'Reschedule Presentation',
-      text: 'Reschedule presentation functionality will be implemented.',
-      toast: true,
-      position: 'top',
-      timer: 2000
-    });
+    const detailsUrl = "{{ route('admins.prospective-tenants.application.details', ':id') }}".replace(':id', applicationId);
+
+    function showRescheduleModal(noticeDate) {
+      const today = new Date().toISOString().split('T')[0];
+      $('#presentationDate').attr('min', today);
+      $('#scheduleApplicationId').val(applicationId);
+      $('#schedulePresentationForm')[0].reset();
+      $('#schedulePresentationForm').removeClass('was-validated');
+      $('.invalid-feedback').text('');
+      $('.is-invalid').removeClass('is-invalid');
+
+      if (noticeDate) {
+        const d = new Date(noticeDate);
+        if (!isNaN(d.getTime())) {
+          $('#presentationDate').val(d.toISOString().slice(0, 10));
+          $('#presentationTime').val(d.toTimeString().slice(0, 5));
+        }
+      }
+
+      $('#schedulePresentationModalLabel').html('<i class="bx bx-time me-2"></i> Reschedule Presentation');
+      $('#schedulePresentationForm button[type="submit"]').html('<i class="bx bx-check me-1"></i> Reschedule');
+
+      const modalElement = document.getElementById('schedulePresentationModal');
+      const existingModal = bootstrap.Modal.getInstance(modalElement);
+      if (existingModal) existingModal.dispose();
+      const modal = new bootstrap.Modal(modalElement, { backdrop: true, keyboard: true });
+      $(modalElement).css({ 'z-index': '1060', 'pointer-events': 'auto' });
+      modal.show();
+      $(modalElement).off('shown.bs.modal').on('shown.bs.modal', function() {
+        $(this).css({ 'z-index': '1060', 'pointer-events': 'auto' });
+        $(this).find('.modal-dialog, .modal-content').css('pointer-events', 'auto');
+        $('.modal-backdrop').last().css('z-index', '1059');
+      });
+      $(modalElement).off('hidden.bs.modal').on('hidden.bs.modal', function() {
+        $('#schedulePresentationModalLabel').html('<i class="bx bx-calendar me-2"></i> Schedule Presentation');
+        $('#schedulePresentationForm button[type="submit"]').html('<i class="bx bx-check me-1"></i> Schedule');
+      });
+    }
+
+    const openOffcanvas = document.querySelector('.offcanvas.show');
+    if (openOffcanvas) {
+      const offcanvasInstance = bootstrap.Offcanvas.getInstance(openOffcanvas);
+      if (offcanvasInstance) {
+        $(openOffcanvas).one('hidden.bs.offcanvas', function() {
+          $.get(detailsUrl, function(res) {
+            showRescheduleModal(res.application && res.application.noticeDate ? res.application.noticeDate : null);
+          }).fail(function() {
+            showRescheduleModal(null);
+          });
+        });
+        offcanvasInstance.hide();
+      } else {
+        $.get(detailsUrl, function(res) {
+          showRescheduleModal(res.application && res.application.noticeDate ? res.application.noticeDate : null);
+        }).fail(function() {
+          showRescheduleModal(null);
+        });
+      }
+    } else {
+      $.get(detailsUrl, function(res) {
+        showRescheduleModal(res.application && res.application.noticeDate ? res.application.noticeDate : null);
+      }).fail(function() {
+        showRescheduleModal(null);
+      });
+    }
   });
 
   // Send Reminder
@@ -2111,7 +2160,7 @@ $(function(){
     });
   });
 
-  // Delete Proposal - remove rejected/withdrawn application from the table
+  // Delete Proposal - remove proposal received/rejected application from the table
   $(document).on('click', '.btn-delete-proposal', function() {
     const applicationId = $(this).data('id');
     const deleteUrl = "{{ route('admins.prospective-tenants.application.delete', ':id') }}".replace(':id', applicationId);
@@ -2147,6 +2196,49 @@ $(function(){
               icon: 'error',
               title: 'Error',
               text: xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to delete proposal.'
+            });
+          }
+        });
+      }
+    });
+  });
+
+  // Remove withdrawn application from list (lease manager action)
+  $(document).on('click', '.btn-remove-withdrawn', function() {
+    const applicationId = $(this).data('id');
+    const deleteUrl = "{{ route('admins.prospective-tenants.application.delete', ':id') }}".replace(':id', applicationId);
+    Swal.fire({
+      title: 'Remove withdrawn application?',
+      text: 'This will remove this application from the list. The tenant can apply again for this stall later if needed.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, remove'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: deleteUrl,
+          method: 'DELETE',
+          headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Removed',
+              text: response.message || 'Application removed from the list.',
+              toast: true,
+              position: 'top',
+              showConfirmButton: false,
+              timer: 2500
+            }).then(function() {
+              table.ajax.reload(null, false);
+            });
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to remove application.'
             });
           }
         });

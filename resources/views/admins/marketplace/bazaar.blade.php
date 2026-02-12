@@ -475,7 +475,7 @@ $(function(){
     const stallID = $(this).data('stall-id');
     console.log('View Applications clicked for stallID:', stallID);
     if (stallID) {
-      window.location.href = "{{ url('/tenants/prospective') }}/" + stallID + "/applications";
+      window.location.href = "{{ url('/tenants/prospective') }}/" + stallID + "/applications?from=marketplace";
     } else {
       console.error('Stall ID not found');
     }

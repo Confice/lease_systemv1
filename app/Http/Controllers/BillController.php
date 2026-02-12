@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BillController extends Controller
 {
@@ -510,6 +511,120 @@ class BillController extends Controller
                 'message' => 'Failed to generate bills.'
             ], 500);
         }
+    }
+
+    /**
+     * Export bills as CSV (admin)
+     */
+    public function adminExportCsv()
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            abort(403, 'Unauthorized');
+        }
+        $fileName = 'bills_' . now()->format('Ymd_His') . '.csv';
+        $query = Bill::with(['contract.user', 'stall.marketplace'])
+            ->whereNull('bills.deleted_at')
+            ->whereHas('contract', fn ($q) => $q->whereNull('contracts.deleted_at'))
+            ->orderBy('dueDate', 'desc');
+        $response = new StreamedResponse(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Bill ID', 'Tenant', 'Stall', 'Marketplace', 'Amount', 'Due Date', 'Date Paid', 'Status']);
+            $query->chunk(200, function ($bills) use ($handle) {
+                foreach ($bills as $bill) {
+                    $tenant = $bill->contract->user ?? null;
+                    $stall = $bill->stall;
+                    $marketplace = $stall->marketplace ?? null;
+                    fputcsv($handle, [
+                        $bill->billID,
+                        $tenant ? trim(($tenant->firstName ?? '') . ' ' . ($tenant->lastName ?? '')) : 'N/A',
+                        $stall ? strtoupper($stall->stallNo) : 'N/A',
+                        $marketplace ? $marketplace->marketplace : 'N/A',
+                        number_format($bill->amount, 2),
+                        $bill->dueDate ? $bill->dueDate->format('Y-m-d') : 'N/A',
+                        $bill->datePaid ? $bill->datePaid->format('Y-m-d H:i') : '',
+                        $bill->status,
+                    ]);
+                }
+            });
+            fclose($handle);
+        });
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+        return $response;
+    }
+
+    /**
+     * Print bills (admin) - opens print-friendly page for PDF
+     */
+    public function adminPrint()
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Lease Manager') {
+            abort(403, 'Unauthorized');
+        }
+        $bills = Bill::with(['contract.user', 'stall.marketplace'])
+            ->whereNull('bills.deleted_at')
+            ->whereHas('contract', fn ($q) => $q->whereNull('contracts.deleted_at'))
+            ->orderBy('dueDate', 'desc')
+            ->get();
+        return view('admins.bills.print', compact('bills'));
+    }
+
+    /**
+     * Export bills as CSV (tenant)
+     */
+    public function tenantExportCsv()
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Tenant') {
+            abort(403, 'Unauthorized');
+        }
+        $fileName = 'my_bills_' . now()->format('Ymd_His') . '.csv';
+        $query = Bill::with(['stall.marketplace', 'contract'])
+            ->whereNull('bills.deleted_at')
+            ->whereHas('contract', fn ($q) => $q->where('userID', $user->id)->where('contractStatus', 'Active')->whereNull('contracts.deleted_at'))
+            ->orderBy('dueDate', 'desc');
+        $response = new StreamedResponse(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Bill ID', 'Stall', 'Marketplace', 'Amount', 'Due Date', 'Date Paid', 'Status']);
+            $query->chunk(200, function ($bills) use ($handle) {
+                foreach ($bills as $bill) {
+                    $stall = $bill->stall;
+                    $marketplace = $stall->marketplace ?? null;
+                    fputcsv($handle, [
+                        $bill->billID,
+                        $stall ? strtoupper($stall->stallNo) : 'N/A',
+                        $marketplace ? $marketplace->marketplace : 'N/A',
+                        number_format($bill->amount, 2),
+                        $bill->dueDate ? $bill->dueDate->format('Y-m-d') : 'N/A',
+                        $bill->datePaid ? $bill->datePaid->format('Y-m-d H:i') : '',
+                        $bill->status,
+                    ]);
+                }
+            });
+            fclose($handle);
+        });
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+        return $response;
+    }
+
+    /**
+     * Print bills (tenant) - opens print-friendly page for PDF
+     */
+    public function tenantPrint()
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'Tenant') {
+            abort(403, 'Unauthorized');
+        }
+        $bills = Bill::with(['stall.marketplace', 'contract'])
+            ->whereNull('bills.deleted_at')
+            ->whereHas('contract', fn ($q) => $q->where('userID', $user->id)->where('contractStatus', 'Active')->whereNull('contracts.deleted_at'))
+            ->orderBy('dueDate', 'desc')
+            ->get();
+        return view('tenants.bills.print', compact('bills'));
     }
 }
 

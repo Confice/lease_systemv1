@@ -1077,23 +1077,15 @@ $(function(){
               }
             });
           },
-          error: function(){
+          error: function(xhr){
+            var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to delete user. Please try again or contact support.';
             Swal.fire({
               icon:'error',
-              title:'Error deleting user!',
-              toast: true,
-              position: 'top',
-              timer: 2000,
-              showConfirmButton: false,
-              showCloseButton: true,
-              timerProgressBar: true,
-              animation: false,
-              showClass: {
-                popup: ''
-              },
-              hideClass: {
-                popup: ''
-              }
+              title:'Error deleting user',
+              text: msg,
+              confirmButtonText: 'OK',
+              showClass: { popup: '' },
+              hideClass: { popup: '' }
             });
           }
         });

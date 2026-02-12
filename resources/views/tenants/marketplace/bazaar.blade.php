@@ -479,7 +479,7 @@ $(function(){
   }
   
   window.rentStall = function(stallID) {
-    window.location.href = `{{ route('tenants.applications.create') }}?stall=${stallID}`;
+    window.location.href = `{{ route('tenants.applications.create') }}?stall=${stallID}&from=marketplace`;
   };
 });
 </script>

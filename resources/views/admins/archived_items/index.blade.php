@@ -15,6 +15,10 @@
             </div>
         </div>
         <!-- /Search Bar -->
+        <!-- Delete All Archived Items -->
+        <button type="button" id="btnDeleteAllArchived" class="btn btn-outline-danger">
+            <i class="bx bx-trash-alt me-1"></i> Delete all archived items
+        </button>
     </div>
 
     <div class="card-body">
@@ -531,26 +535,72 @@ $(function(){
     });
   });
 
+  // Delete ALL archived items
+  $('#btnDeleteAllArchived').on('click', function() {
+    Swal.fire({
+      title: 'Delete all archived items?',
+      html: 'This will <strong>permanently delete every item</strong> in the archive (users, stalls, feedback, leases, bills).<br><br>This cannot be undone.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, delete all',
+      cancelButtonText: 'Cancel',
+      animation: false,
+      showClass: { popup: '' },
+      hideClass: { popup: '' }
+    }).then(function(result) {
+      if (result.isConfirmed) {
+        var $btn = $('#btnDeleteAllArchived');
+        $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Deleting...');
+        $.ajax({
+          url: "{{ route('admins.archived-items.delete-all') }}",
+          method: 'POST',
+          data: {
+            _token: $('meta[name="csrf-token"]').attr('content')
+          },
+          success: function(response) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Done',
+              text: response.message || 'All archived items have been permanently deleted.',
+              animation: false,
+              showClass: { popup: '' },
+              hideClass: { popup: '' }
+            }).then(function() {
+              selectedItems.clear();
+              $('#selectAllCheckbox').prop('checked', false);
+              table.ajax.reload();
+            });
+          },
+          error: function(xhr) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: xhr.responseJSON?.message || 'Failed to delete archived items.',
+              animation: false,
+              showClass: { popup: '' },
+              hideClass: { popup: '' }
+            });
+          },
+          complete: function() {
+            $btn.prop('disabled', false).html('<i class="bx bx-trash-alt me-1"></i> Delete all archived items');
+          }
+        });
+      }
+    });
+  });
+
   // CSV Export
   $('#exportCsv').on('click', function(e) {
     e.preventDefault();
     window.location.href = "{{ route('admins.archived-items.export.csv') }}";
   });
 
-  // PDF Export
+  // PDF Export (print)
   $('#exportPdf').on('click', function(e) {
     e.preventDefault();
-    // TODO: Implement PDF export
-    Swal.fire({
-      icon: 'info',
-      title: 'Export PDF',
-      text: 'PDF export functionality will be implemented soon.',
-      timer: 2000,
-      showConfirmButton: false,
-      animation: false,
-      showClass: { popup: '' },
-      hideClass: { popup: '' }
-    });
+    window.open("{{ route('admins.archived-items.print') }}", '_blank');
   });
 });
 </script>

@@ -7,6 +7,9 @@ use App\Models\Stall;
 use App\Models\Feedback;
 use App\Models\Contract;
 use App\Models\Bill;
+use App\Models\Application;
+use App\Models\Document;
+use App\Models\Store;
 use App\Models\ActivityLog;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
@@ -138,7 +141,7 @@ class ArchivedItemsController extends Controller
                 if ($item['type'] === 'user') {
                     $user = User::onlyTrashed()->find($id);
                     if ($user) {
-                        $user->forceDelete();
+                        $this->permanentlyDeleteUser($user);
                         $deletedCount++;
                         try {
                             ActivityLogService::logDelete('users', $id, "User #{$id} permanently deleted from archive.");
@@ -149,7 +152,7 @@ class ArchivedItemsController extends Controller
                 } elseif ($item['type'] === 'stall') {
                     $stall = Stall::onlyTrashed()->find($id);
                     if ($stall) {
-                        $stall->forceDelete();
+                        $this->permanentlyDeleteStall($stall);
                         $deletedCount++;
                         try {
                             ActivityLogService::logDelete('stalls', $id, "Stall #{$id} permanently deleted from archive.");
@@ -171,7 +174,7 @@ class ArchivedItemsController extends Controller
                 } elseif ($item['type'] === 'contract') {
                     $contract = Contract::onlyTrashed()->find($id);
                     if ($contract) {
-                        $contract->forceDelete();
+                        $this->permanentlyDeleteContract($contract);
                         $deletedCount++;
                         try {
                             ActivityLogService::logDelete('contracts', $id, "Contract #{$id} permanently deleted from archive.");
@@ -197,16 +200,104 @@ class ArchivedItemsController extends Controller
         }
 
         if ($deletedCount > 0) {
-            return response()->json([
+            $payload = [
                 'success' => true,
                 'message' => "{$deletedCount} item(s) permanently deleted.",
+            ];
+            if (!empty($errors)) {
+                $payload['errors'] = $errors;
+            }
+            return response()->json($payload);
+        }
+
+        if (!empty($errors)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Could not delete some or all items.',
+                'errors'  => $errors,
+            ], 422);
+        }
+
+        // No items were found to delete (already removed or never existed). Return success
+        // so the frontend can refresh the list and remove those rows from the UI.
+        return response()->json([
+            'success' => true,
+            'message' => 'Those items are no longer in the archive and have been removed from the list.',
+        ]);
+    }
+
+    /**
+     * Permanently delete a contract and all dependents (bills, feedback, docs; clear FKs on applications and contracts).
+     */
+    private function permanentlyDeleteContract(Contract $contract): void
+    {
+        $contractId = $contract->contractID;
+        Contract::where('renewedFrom', $contractId)->update(['renewedFrom' => null]);
+        Application::withTrashed()->where('contractID', $contractId)->update(['contractID' => null]);
+        Bill::withTrashed()->where('contractID', $contractId)->forceDelete();
+        Feedback::where('contractID', $contractId)->delete();
+        Document::withTrashed()->where('contractID', $contractId)->forceDelete();
+        $contract->forceDelete();
+    }
+
+    /**
+     * Permanently delete a user and all related data (contracts, bills, feedback, docs, applications, stores, activity logs).
+     */
+    private function permanentlyDeleteUser(User $user): void
+    {
+        $userId = $user->id;
+        $contracts = Contract::withTrashed()->where('userID', $userId)->get();
+        foreach ($contracts as $contract) {
+            $stall = Stall::withTrashed()->find($contract->stallID);
+            if ($stall) {
+                $stall->update(['stallStatus' => 'Vacant', 'storeID' => null]);
+            }
+            $this->permanentlyDeleteContract($contract);
+        }
+        Document::withTrashed()->where('userID', $userId)->forceDelete();
+        Application::withTrashed()->where('userID', $userId)->forceDelete();
+        $storeIds = Store::where('userID', $userId)->pluck('storeID');
+        if ($storeIds->isNotEmpty()) {
+            Stall::withTrashed()->whereIn('storeID', $storeIds)->update(['storeID' => null, 'stallStatus' => 'Vacant']);
+        }
+        Store::where('userID', $userId)->delete();
+        ActivityLog::where('userID', $userId)->delete();
+        DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+        $user->forceDelete();
+    }
+
+    /**
+     * Permanently delete a stall after removing any contracts (and their dependents) that reference it.
+     */
+    private function permanentlyDeleteStall(Stall $stall): void
+    {
+        $stallId = $stall->stallID;
+        $contracts = Contract::withTrashed()->where('stallID', $stallId)->get();
+        foreach ($contracts as $contract) {
+            $this->permanentlyDeleteContract($contract);
+        }
+        $stall->forceDelete();
+    }
+
+    /**
+     * Permanently delete ALL archived items (no undo).
+     */
+    public function deleteAll(Request $request)
+    {
+        $archivedItems = $this->getArchivedItems();
+        if ($archivedItems->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'No archived items to delete.',
             ]);
         }
 
-        return response()->json([
-            'success' => false,
-            'message' => 'No items were deleted. They may no longer exist or were already removed.',
-        ], 422);
+        $items = $archivedItems->map(fn ($row) => [
+            'id'   => $row['id'],
+            'type' => $row['module_type'],
+        ])->values()->toArray();
+
+        return $this->destroy(new Request(['items' => $items]));
     }
 
     public function exportCsv()
@@ -235,6 +326,15 @@ class ArchivedItemsController extends Controller
         $response->headers->set('Content-Disposition', 'attachment; filename="'.$fileName.'"');
 
         return $response;
+    }
+
+    /**
+     * Print archived items (for PDF)
+     */
+    public function print()
+    {
+        $archivedItems = $this->getArchivedItems();
+        return view('admins.archived_items.print', compact('archivedItems'));
     }
 
     private function getArchivedItems()
@@ -358,37 +458,47 @@ class ArchivedItemsController extends Controller
 
     /**
      * Get "archived by" user name and action description from activity log for an archived entity.
-     * Uses User::withTrashed() so we show the archiver even if that user was later soft-deleted.
+     * Archive actions are logged as actionType 'Delete' with description like "Archived ...".
+     * Uses User::withTrashed() so we show the archiver even if they were later soft-deleted.
      */
     private function getArchiveLogMeta(string $entity, int $entityId): array
     {
+        // Find log: prefer "Archived..." description, else any Delete for this entity (so we catch all archive actions)
         $log = ActivityLog::where('entity', $entity)
             ->where('entityID', (int) $entityId)
-            ->where('description', 'like', 'Archived%')
+            ->where(function ($q) {
+                $q->where('description', 'like', 'Archived%')
+                  ->orWhere('actionType', 'Delete');
+            })
             ->orderByDesc('created_at')
             ->first();
 
-        if (!$log || !$log->userID) {
+        if (!$log) {
             return ['archived_by' => '—', 'action' => 'Archived'];
         }
 
-        // Load archiver with withTrashed() so we show name even if they were later deleted
+        $action = $log->description ?? 'Archived';
+
+        if (!$log->userID) {
+            return ['archived_by' => '—', 'action' => $action];
+        }
+
         $archiver = User::withTrashed()->find($log->userID);
         if (!$archiver) {
-            return [
-                'archived_by' => '—',
-                'action' => $log->description ?? 'Archived',
-            ];
+            return ['archived_by' => 'User #' . $log->userID, 'action' => $action];
         }
 
         $name = trim(($archiver->firstName ?? '') . ' ' . ($archiver->lastName ?? ''));
         if ($name === '') {
-            $name = $archiver->email ?? '—';
+            $name = $archiver->email ?? ('User #' . $log->userID);
+        }
+        if (($archiver->role ?? '') !== '') {
+            $name = $name . ' (' . $archiver->role . ')';
         }
 
         return [
             'archived_by' => $name,
-            'action' => $log->description ?? 'Archived',
+            'action' => $action,
         ];
     }
 }
