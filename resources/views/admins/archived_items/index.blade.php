@@ -417,7 +417,7 @@ $(function(){
     });
   });
 
-  // Single-row Delete permanently
+  // Single-row Delete permanently (double confirmation)
   $(document).on('click', '.btn-archive-delete-one', function() {
     const id = $(this).data('id');
     const type = $(this).data('type');
@@ -434,31 +434,46 @@ $(function(){
       hideClass: { popup: '' }
     }).then((result) => {
       if (result.isConfirmed) {
-        $.ajax({
-          url: "{{ route('admins.archived-items.delete') }}",
-          method: 'POST',
-          data: { items: [{ id: id, type: type }] },
-          success: function(response) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Deleted',
-              text: response.message || 'Item permanently deleted.',
-              toast: true,
-              position: 'top',
-              showConfirmButton: false,
-              showCloseButton: true,
-              timer: 2000,
-              timerProgressBar: true
-            }).then(() => { table.ajax.reload(); });
-          },
-          error: function(xhr) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: xhr.responseJSON?.message || 'Failed to delete.',
-              animation: false,
-              showClass: { popup: '' },
-              hideClass: { popup: '' }
+        Swal.fire({
+          title: 'Confirm deletion',
+          text: 'Are you absolutely sure? This is your last chance to cancel.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc3545',
+          cancelButtonColor: '#6c757d',
+          confirmButtonText: 'Yes, I am sure – delete permanently',
+          animation: false,
+          showClass: { popup: '' },
+          hideClass: { popup: '' }
+        }).then((result2) => {
+          if (result2.isConfirmed) {
+            $.ajax({
+              url: "{{ route('admins.archived-items.delete') }}",
+              method: 'POST',
+              data: { items: [{ id: id, type: type }], _token: $('meta[name="csrf-token"]').attr('content') },
+              success: function(response) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Deleted',
+                  text: response.message || 'Item permanently deleted.',
+                  toast: true,
+                  position: 'top',
+                  showConfirmButton: false,
+                  showCloseButton: true,
+                  timer: 2000,
+                  timerProgressBar: true
+                }).then(() => { table.ajax.reload(); });
+              },
+              error: function(xhr) {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: xhr.responseJSON?.message || 'Failed to delete.',
+                  animation: false,
+                  showClass: { popup: '' },
+                  hideClass: { popup: '' }
+                });
+              }
             });
           }
         });
@@ -499,35 +514,50 @@ $(function(){
       hideClass: { popup: '' }
     }).then((result) => {
       if (result.isConfirmed) {
-        $.ajax({
-          url: "{{ route('admins.archived-items.delete') }}",
-          method: 'POST',
-          data: { items: checkedItems },
-          success: function(response) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Deleted',
-              text: response.message || 'Items permanently deleted.',
-              toast: true,
-              position: 'top',
-              showConfirmButton: false,
-              showCloseButton: true,
-              timer: 2000,
-              timerProgressBar: true
-            }).then(() => {
-              selectedItems.clear();
-              $('#selectAllCheckbox').prop('checked', false);
-              table.ajax.reload();
-            });
-          },
-          error: function(xhr) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: xhr.responseJSON?.message || 'Failed to delete items.',
-              animation: false,
-              showClass: { popup: '' },
-              hideClass: { popup: '' }
+        Swal.fire({
+          title: 'Confirm deletion',
+          text: 'Are you absolutely sure? This is your last chance to cancel.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc3545',
+          cancelButtonColor: '#6c757d',
+          confirmButtonText: 'Yes, I am sure – delete permanently',
+          animation: false,
+          showClass: { popup: '' },
+          hideClass: { popup: '' }
+        }).then((result2) => {
+          if (result2.isConfirmed) {
+            $.ajax({
+              url: "{{ route('admins.archived-items.delete') }}",
+              method: 'POST',
+              data: { items: checkedItems, _token: $('meta[name="csrf-token"]').attr('content') },
+              success: function(response) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Deleted',
+                  text: response.message || 'Items permanently deleted.',
+                  toast: true,
+                  position: 'top',
+                  showConfirmButton: false,
+                  showCloseButton: true,
+                  timer: 2000,
+                  timerProgressBar: true
+                }).then(() => {
+                  selectedItems.clear();
+                  $('#selectAllCheckbox').prop('checked', false);
+                  table.ajax.reload();
+                });
+              },
+              error: function(xhr) {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: xhr.responseJSON?.message || 'Failed to delete items.',
+                  animation: false,
+                  showClass: { popup: '' },
+                  hideClass: { popup: '' }
+                });
+              }
             });
           }
         });
@@ -535,7 +565,7 @@ $(function(){
     });
   });
 
-  // Delete ALL archived items
+  // Delete ALL archived items (double confirmation)
   $('#btnDeleteAllArchived').on('click', function() {
     Swal.fire({
       title: 'Delete all archived items?',
@@ -551,7 +581,20 @@ $(function(){
       hideClass: { popup: '' }
     }).then(function(result) {
       if (result.isConfirmed) {
-        var $btn = $('#btnDeleteAllArchived');
+        Swal.fire({
+          title: 'Confirm deletion',
+          html: 'Are you <strong>absolutely sure</strong>? This will permanently delete every item in the archive. This is your last chance to cancel.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc3545',
+          cancelButtonColor: '#6c757d',
+          confirmButtonText: 'Yes, I am sure – delete everything',
+          animation: false,
+          showClass: { popup: '' },
+          hideClass: { popup: '' }
+        }).then(function(result2) {
+          if (result2.isConfirmed) {
+            var $btn = $('#btnDeleteAllArchived');
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Deleting...');
         $.ajax({
           url: "{{ route('admins.archived-items.delete-all') }}",
@@ -585,6 +628,8 @@ $(function(){
           },
           complete: function() {
             $btn.prop('disabled', false).html('<i class="bx bx-trash-alt me-1"></i> Delete all archived items');
+          }
+        });
           }
         });
       }

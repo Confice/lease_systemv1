@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use App\Mail\PresentationScheduled;
+use App\Mail\ContractTerminated;
+use App\Mail\ApplicationApproved;
 
 class ContractController extends Controller
 {
@@ -615,6 +617,16 @@ class ContractController extends Controller
                 \Log::warning("Failed to log approval activity: " . $e->getMessage());
             }
 
+            // Send email notification to tenant
+            $stall->load('marketplace');
+            if ($tenant->email) {
+                try {
+                    Mail::to($tenant->email)->send(new ApplicationApproved($tenant, $applicationModel, $stall, $contract));
+                } catch (\Exception $e) {
+                    \Log::warning("Failed to send application approved email: " . $e->getMessage());
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Application approved successfully. Tenant has been automatically assigned to the stall.'
@@ -1182,6 +1194,16 @@ class ContractController extends Controller
                     ActivityLogService::logUpdate('contracts', $contract->contractID, "Contract terminated. Reason: {$request->reason}");
                 } catch (\Exception $e) {
                     \Log::warning("Failed to log contract termination activity: " . $e->getMessage());
+                }
+
+                // Send email notification to tenant
+                $contract->load(['user', 'stall.marketplace']);
+                if ($contract->user && $contract->user->email) {
+                    try {
+                        Mail::to($contract->user->email)->send(new ContractTerminated($contract->user, $contract, $request->reason));
+                    } catch (\Exception $e) {
+                        \Log::warning("Failed to send contract termination email: " . $e->getMessage());
+                    }
                 }
 
                 // If request expects JSON (AJAX), return JSON response

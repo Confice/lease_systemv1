@@ -457,6 +457,49 @@ class ArchivedItemsController extends Controller
     }
 
     /**
+     * Purge archived items older than the given number of years (data retention).
+     * Called by the archive:purge-old command.
+     */
+    public function purgeOldArchivedItems(int $years = 5): array
+    {
+        $cutoff = now()->subYears($years);
+        $counts = ['users' => 0, 'stalls' => 0, 'feedback' => 0, 'contracts' => 0, 'bills' => 0];
+
+        // Delete in order: bills, feedback, contracts (handles FKs), then users, stalls
+        $oldBills = Bill::onlyTrashed()->where('deleted_at', '<', $cutoff)->get();
+        foreach ($oldBills as $bill) {
+            $bill->forceDelete();
+            $counts['bills']++;
+        }
+
+        $oldFeedback = Feedback::whereNotNull('archived_at')->where('archived_at', '<', $cutoff)->get();
+        foreach ($oldFeedback as $feedback) {
+            $feedback->delete();
+            $counts['feedback']++;
+        }
+
+        $oldContracts = Contract::onlyTrashed()->where('deleted_at', '<', $cutoff)->get();
+        foreach ($oldContracts as $contract) {
+            $this->permanentlyDeleteContract($contract);
+            $counts['contracts']++;
+        }
+
+        $oldUsers = User::onlyTrashed()->where('deleted_at', '<', $cutoff)->get();
+        foreach ($oldUsers as $user) {
+            $this->permanentlyDeleteUser($user);
+            $counts['users']++;
+        }
+
+        $oldStalls = Stall::onlyTrashed()->where('deleted_at', '<', $cutoff)->get();
+        foreach ($oldStalls as $stall) {
+            $this->permanentlyDeleteStall($stall);
+            $counts['stalls']++;
+        }
+
+        return $counts;
+    }
+
+    /**
      * Get "archived by" user name and action description from activity log for an archived entity.
      * Archive actions are logged as actionType 'Delete' with description like "Archived ...".
      * Uses User::withTrashed() so we show the archiver even if they were later soft-deleted.

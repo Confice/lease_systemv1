@@ -13,3 +13,9 @@ Schedule::command('bills:generate-monthly')
     ->monthlyOn(1, '09:00')
     ->timezone('Asia/Manila')
     ->description('Generate monthly bills for all active contracts');
+
+// Data retention: purge archived items older than 5 years (runs daily at 2:00 AM)
+Schedule::command('archive:purge-old')
+    ->dailyAt('02:00')
+    ->timezone('Asia/Manila')
+    ->description('Permanently delete archived items older than 5 years');
