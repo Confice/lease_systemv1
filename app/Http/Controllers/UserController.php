@@ -22,12 +22,45 @@ class UserController extends Controller
 {
     public function index()
     {
-        return view('admins.users.index');
+        $statusCounts = [
+            'All' => User::whereNull('deleted_at')->count(),
+            'Active' => User::whereNull('deleted_at')->where('userStatus', 'Active')->count(),
+            'Inactive' => User::whereNull('deleted_at')->where('userStatus', 'Deactivated')->count(),
+        ];
+        return view('admins.users.index', compact('statusCounts'));
     }
 
-    public function data()
+    public function data(Request $request)
     {
-        $users = User::whereNull('deleted_at')->orderBy('id')->get();
+        $status = $request->input('status', 'all');
+        $search = trim($request->input('search', ''));
+
+        $query = User::whereNull('deleted_at');
+
+        // Filter by status
+        if ($status !== 'all') {
+            if ($status === 'Active') {
+                $query->where('userStatus', 'Active');
+            } elseif ($status === 'Inactive') {
+                $query->where('userStatus', 'Deactivated');
+            }
+        }
+
+        // Global search - match any text across name, email, contact, role, address
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('firstName', 'like', "%{$search}%")
+                  ->orWhere('middleName', 'like', "%{$search}%")
+                  ->orWhere('lastName', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('contactNo', 'like', "%{$search}%")
+                  ->orWhere('role', 'like', "%{$search}%")
+                  ->orWhere('homeAddress', 'like', "%{$search}%")
+                  ->orWhere('userStatus', 'like', "%{$search}%");
+            });
+        }
+
+        $users = $query->orderBy('id')->get();
 
         $data = $users->map(function ($u) {
             return [

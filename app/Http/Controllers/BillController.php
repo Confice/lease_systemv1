@@ -465,6 +465,12 @@ class BillController extends Controller
                         $nextDueDate = $contract->startDate->copy()->addMonth();
                     }
 
+                    // Ensure due date is in current or future month (never use past dates)
+                    $startOfCurrentMonth = now()->startOfMonth();
+                    if ($nextDueDate->lt($startOfCurrentMonth)) {
+                        $nextDueDate = now()->endOfMonth();
+                    }
+
                     // Don't generate if contract has ended
                     if ($contract->endDate && $nextDueDate->gt($contract->endDate)) {
                         continue;

@@ -16,7 +16,12 @@ class StallController extends Controller
     {
         $marketplaces = Marketplace::whereNull('deleted_at')->orderBy('marketplace')->get();
         $stores = Store::orderBy('storeName')->get();
-        return view('admins.stalls.index', compact('marketplaces', 'stores'));
+        $statusCounts = [
+            'All' => Stall::whereNull('deleted_at')->count(),
+            'Occupied' => Stall::whereNull('deleted_at')->where('stallStatus', 'Occupied')->count(),
+            'Vacant' => Stall::whereNull('deleted_at')->where('stallStatus', 'Vacant')->count(),
+        ];
+        return view('admins.stalls.index', compact('marketplaces', 'stores', 'statusCounts'));
     }
 
     public function getTenants()
@@ -101,12 +106,22 @@ class StallController extends Controller
         }
     }
 
-    public function data()
+    public function data(Request $request)
     {
-        $stalls = Stall::with(['marketplace', 'store', 'contracts.user'])
-            ->whereNull('deleted_at')
-            ->orderBy('stallID')
-            ->get();
+        $status = $request->input('status', 'all');
+
+        $query = Stall::with(['marketplace', 'store', 'contracts.user'])
+            ->whereNull('deleted_at');
+
+        if ($status !== 'all') {
+            if ($status === 'Occupied') {
+                $query->where('stallStatus', 'Occupied');
+            } elseif ($status === 'Vacant') {
+                $query->where('stallStatus', 'Vacant');
+            }
+        }
+
+        $stalls = $query->orderBy('stallNo')->orderBy('stallID')->get();
 
         $data = $stalls->map(function ($stall) {
             // Get the current active contract's user as "Rent By"
@@ -280,6 +295,19 @@ class StallController extends Controller
                 'applicationDeadline' => 'nullable|date|after_or_equal:today',
                 'stallStatus' => 'required|in:Vacant,Occupied',
             ]);
+
+            // Cannot change to Vacant while stall has an active lease - must terminate lease first
+            if ($validated['stallStatus'] === 'Vacant' && $stall->stallStatus === 'Occupied') {
+                $activeContract = $stall->contracts()->where('contractStatus', 'Active')->first();
+                if ($activeContract) {
+                    return response()->json([
+                        'success' => false,
+                        'errors' => [
+                            'stallStatus' => ['Cannot change stall to Vacant while it has an active lease. Please terminate the lease first via Lease Management.']
+                        ]
+                    ], 422);
+                }
+            }
             
             // Application deadline is optional when status is Vacant
             // If status is Vacant and no deadline provided, set to null

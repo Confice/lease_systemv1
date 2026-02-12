@@ -27,7 +27,20 @@ class ContractController extends Controller
      */
     public function index()
     {
-        return view('admins.prospective_tenants.index');
+        $stalls = Stall::where('stallStatus', 'Vacant')
+            ->whereNull('deleted_at')
+            ->whereNotNull('applicationDeadline')
+            ->where('applicationDeadline', '>=', now())
+            ->with('marketplace')
+            ->get();
+        $hubCount = $stalls->filter(fn($s) => $s->marketplace && (stripos($s->marketplace->marketplace, 'Hub') !== false))->count();
+        $bazaarCount = $stalls->filter(fn($s) => $s->marketplace && (stripos($s->marketplace->marketplace, 'Bazaar') !== false))->count();
+        $statusCounts = [
+            'All' => $stalls->count(),
+            'The Hub' => $hubCount,
+            'Bazaar' => $bazaarCount,
+        ];
+        return view('admins.prospective_tenants.index', compact('statusCounts'));
     }
 
     /**
@@ -37,7 +50,8 @@ class ContractController extends Controller
     {
         try {
             $sortBy = $request->input('sort', 'stall_name');
-            
+            $filter = $request->input('filter', 'all');
+
             // Get only vacant stalls with application deadline set (not null and not passed)
             $stallsQuery = Stall::where('stallStatus', 'Vacant')
                 ->whereNull('deleted_at')
@@ -46,13 +60,22 @@ class ContractController extends Controller
                 ->with(['marketplace', 'applications' => function($query) {
                     $query->whereNull('deleted_at');
                 }]);
-            
+
+            // Apply marketplace filter (The Hub / Bazaar)
+            if ($filter !== 'all') {
+                if ($filter === 'hub') {
+                    $stallsQuery->whereHas('marketplace', function ($q) {
+                        $q->where('marketplace', 'like', '%Hub%');
+                    });
+                } elseif ($filter === 'bazaar') {
+                    $stallsQuery->whereHas('marketplace', function ($q) {
+                        $q->where('marketplace', 'like', '%Bazaar%');
+                    });
+                }
+            }
+
             // Apply sorting
             switch ($sortBy) {
-                case 'location':
-                    // Sort by location (will be handled after fetching)
-                    $stallsQuery->orderBy('stallNo'); // Default order, will sort in PHP
-                    break;
                 case 'recent_application':
                     // Sort by most recent application date (will be handled after fetching)
                     $stallsQuery->orderBy('stallNo'); // Default order, will sort in PHP
@@ -100,12 +123,8 @@ class ContractController extends Controller
                 ];
             });
             
-            // Sort by location or most recent application if needed (after mapping to get the data)
-            if ($sortBy === 'location') {
-                $data = $data->sortBy(function ($stall) {
-                    return $stall['location'];
-                })->values();
-            } elseif ($sortBy === 'recent_application') {
+            // Sort by most recent application if needed (after mapping to get the data)
+            if ($sortBy === 'recent_application') {
                 $data = $data->sortByDesc(function ($stall) {
                     return $stall['mostRecentApplicationDate'] ?? '1970-01-01 00:00:00';
                 })->values();
@@ -524,7 +543,7 @@ class ContractController extends Controller
     }
 
     /**
-     * Approve an application
+     * Approve an application and automatically assign the tenant to the stall
      */
     public function approveApplication(Request $request, $application)
     {
@@ -536,6 +555,7 @@ class ContractController extends Controller
         try {
             $applicationModel = Application::where('applicationID', $application)
                 ->whereNull('deleted_at')
+                ->with(['user', 'stall'])
                 ->first();
 
             if (!$applicationModel) {
@@ -549,21 +569,58 @@ class ContractController extends Controller
                 ], 400);
             }
 
+            $stall = $applicationModel->stall;
+            $tenant = $applicationModel->user;
+
+            if (!$stall || !$tenant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Application has invalid stall or user.'
+                ], 400);
+            }
+
+            if ($stall->stallStatus === 'Occupied') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This stall is already occupied. Please remove the current tenant first or reject this application.'
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            $contract = Contract::create([
+                'stallID' => $stall->stallID,
+                'userID' => $tenant->id,
+                'startDate' => now(),
+                'contractStatus' => 'Active',
+            ]);
+
+            $stall->update([
+                'stallStatus' => 'Occupied',
+                'lastStatusChange' => now(),
+            ]);
+
             $applicationModel->update([
                 'appStatus' => 'Approved',
+                'contractID' => $contract->contractID,
             ]);
+
+            DB::commit();
 
             try {
                 ActivityLogService::logUpdate('applications', $applicationModel->applicationID, 'Application approved.');
+                ActivityLogService::logCreate('contracts', $contract->contractID, "Tenant assigned to stall #{$stall->stallID} (auto-assigned from approved application)");
+                ActivityLogService::logUpdate('stalls', $stall->stallID, "Stall status updated to Occupied");
             } catch (\Exception $e) {
-                \Log::warning("Failed to log application approval: " . $e->getMessage());
+                \Log::warning("Failed to log approval activity: " . $e->getMessage());
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Application approved successfully.'
+                'message' => 'Application approved successfully. Tenant has been automatically assigned to the stall.'
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             \Log::error("Application approve error: " . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -906,6 +963,36 @@ class ContractController extends Controller
             $stall = $contract->stall;
             $marketplace = $stall->marketplace ?? null;
 
+            // Get all contracts for this user (tenant)
+            $userContracts = [];
+            if ($tenant) {
+                $userContracts = Contract::with(['stall.marketplace', 'bills', 'feedbacks'])
+                    ->where('userID', $tenant->id)
+                    ->whereNull('deleted_at')
+                    ->orderBy('startDate', 'desc')
+                    ->get()
+                    ->map(function ($c) {
+                        $s = $c->stall;
+                        $m = $s && $s->marketplace ? $s->marketplace : null;
+                        return [
+                            'contractID' => $c->contractID,
+                            'startDate' => $c->startDate ? $c->startDate->format('Y-m-d') : null,
+                            'endDate' => $c->endDate ? $c->endDate->format('Y-m-d') : null,
+                            'contractStatus' => $c->contractStatus,
+                            'stall' => $s ? [
+                                'stallID' => $s->stallID,
+                                'formattedStallId' => $s->formatted_stall_id,
+                                'marketplace' => $m ? $m->marketplace : null,
+                                'rentalFee' => $s->rentalFee,
+                            ] : null,
+                            'billsCount' => $c->bills->count(),
+                            'feedbacksCount' => $c->feedbacks->count(),
+                        ];
+                    })
+                    ->values()
+                    ->all();
+            }
+
             return response()->json([
                 'success' => true,
                 'contract' => [
@@ -931,6 +1018,7 @@ class ContractController extends Controller
                 ] : null,
                 'billsCount' => $contract->bills->count(),
                 'feedbacksCount' => $contract->feedbacks->count(),
+                'userContracts' => $userContracts,
             ]);
         } catch (\Exception $e) {
             \Log::error("Contract show error: " . $e->getMessage());

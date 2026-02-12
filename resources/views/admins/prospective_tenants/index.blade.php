@@ -50,6 +50,21 @@
     color: #dee2e6;
   }
   
+  /* Filter tabs - active state */
+  #filterTabs .filter-tab.active {
+    font-weight: 600;
+  }
+  #filterTabs .filter-tab.active.btn-outline-primary {
+    background-color: rgba(127, 146, 103, 0.15);
+    border-color: rgba(127, 146, 103, 0.5);
+    color: #7F9267;
+  }
+  #filterTabs .filter-tab.active.btn-outline-secondary {
+    background-color: rgba(108, 117, 125, 0.2);
+    border-color: rgba(108, 117, 125, 0.5);
+    color: #6c757d;
+  }
+
   /* Search input placeholder styling */
   #prospectiveTenantsSearch::placeholder {
     color: rgba(127, 146, 103, 0.6) !important;
@@ -119,9 +134,6 @@
           <li><a class="dropdown-item sort-option active" href="#" data-sort="stall_name">
             <i class="bx bx-check me-1 sort-check-icon" style="color: #7F9267 !important; display: inline-block !important;"></i> <span class="sort-text" style="color: #7F9267 !important;">Stall Name</span>
           </a></li>
-          <li><a class="dropdown-item sort-option" href="#" data-sort="location">
-            <i class="bx bx-check me-1 sort-check-icon" style="display: none !important; color: #7F9267 !important;"></i> <span class="sort-text" style="color: #201F23 !important;">Location</span>
-          </a></li>
           <li><a class="dropdown-item sort-option" href="#" data-sort="recent_application">
             <i class="bx bx-check me-1 sort-check-icon" style="display: none !important; color: #7F9267 !important;"></i> <span class="sort-text" style="color: #201F23 !important;">Most Recent Application</span>
           </a></li>
@@ -141,6 +153,18 @@
   </div>
 
   <div class="card-body">
+    <div class="d-flex flex-wrap gap-2 mb-3" id="filterTabs">
+      <button type="button" class="btn btn-outline-primary filter-tab active" data-filter="all">
+        All <span class="badge bg-primary ms-1">{{ $statusCounts['All'] ?? 0 }}</span>
+      </button>
+      <button type="button" class="btn btn-outline-primary filter-tab" data-filter="hub">
+        The Hub <span class="badge bg-primary ms-1">{{ $statusCounts['The Hub'] ?? 0 }}</span>
+      </button>
+      <button type="button" class="btn btn-outline-secondary filter-tab" data-filter="bazaar">
+        Bazaar <span class="badge bg-secondary ms-1">{{ $statusCounts['Bazaar'] ?? 0 }}</span>
+      </button>
+    </div>
+
     <!-- Stalls Container -->
     <div id="stallsContainer" class="row g-4">
       <!-- Stalls will be loaded here via AJAX -->
@@ -162,6 +186,7 @@ $(function(){
   
   let allStalls = [];
   let currentSort = 'stall_name'; // Default sort
+  let currentFilter = 'all'; // Default filter (All, hub, bazaar)
   
   function formatDate(dateString) {
     if (!dateString) return 'No deadline set';
@@ -174,8 +199,8 @@ $(function(){
     return '₱' + parseFloat(amount.replace(/,/g, '')).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   }
   
-  function loadStalls(searchQuery = '', sortBy = 'stall_name') {
-    $.get("{{ route('admins.prospective-tenants.data') }}", { sort: sortBy }, function(response) {
+  function loadStalls(searchQuery = '', sortBy = 'stall_name', filter = 'all') {
+    $.get("{{ route('admins.prospective-tenants.data') }}", { sort: sortBy, filter: filter }, function(response) {
       allStalls = response.data || [];
       
       // Filter by search query
@@ -274,14 +299,23 @@ $(function(){
   // Search functionality
   $('#prospectiveTenantsSearch').on('keyup', function(){
     const query = $(this).val();
-    loadStalls(query, currentSort);
+    loadStalls(query, currentSort, currentFilter);
   });
   
   // Clear search when input is cleared
   $('#prospectiveTenantsSearch').on('input', function(){
     if ($(this).val() === '') {
-      loadStalls('', currentSort);
+      loadStalls('', currentSort, currentFilter);
     }
+  });
+
+  // Filter tabs (The Hub / Bazaar)
+  $('#filterTabs').on('click', '.filter-tab', function() {
+    $('#filterTabs .filter-tab').removeClass('active');
+    $(this).addClass('active');
+    currentFilter = $(this).data('filter');
+    const searchQuery = $('#prospectiveTenantsSearch').val();
+    loadStalls(searchQuery, currentSort, currentFilter);
   });
   
   // Sort functionality
@@ -305,7 +339,7 @@ $(function(){
     
     // Reload with new sort
     const searchQuery = $('#prospectiveTenantsSearch').val();
-    loadStalls(searchQuery, currentSort);
+    loadStalls(searchQuery, currentSort, currentFilter);
   });
   
   // More button click
@@ -316,7 +350,7 @@ $(function(){
   });
   
   // Load stalls on page load
-  loadStalls('', currentSort);
+  loadStalls('', currentSort, currentFilter);
 });
 </script>
 @endpush

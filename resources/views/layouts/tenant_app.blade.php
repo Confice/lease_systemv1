@@ -159,10 +159,11 @@
               <ul class="navbar-nav flex-row align-items-center">
                 <!-- Notifications (Recent activity + lease manager actions) -->
                 <li class="nav-item dropdown me-2">
-                  <a class="nav-link dropdown-toggle hide-arrow position-relative" href="javascript:void(0);" data-bs-toggle="dropdown" aria-label="Notifications">
+                  <a class="nav-link dropdown-toggle hide-arrow position-relative" href="javascript:void(0);" data-bs-toggle="dropdown" aria-label="Notifications" id="notificationIcon">
                     <i class="bx bx-bell fs-4"></i>
                     @if(!empty($recentActivityFormatted))
-                      <span class="badge rounded-pill bg-danger badge-dot position-absolute top-0 end-0" style="width: 8px; height: 8px;"></span>
+                      @php $notifCount = count($recentActivityFormatted); @endphp
+                      <span class="badge rounded-pill bg-danger position-absolute notification-badge" id="notificationBadge" style="top: -4px; right: -4px; font-size: 0.65rem; min-width: 18px;">{{ $notifCount > 99 ? '99+' : $notifCount }}</span>
                     @endif
                   </a>
                   <ul class="dropdown-menu dropdown-menu-end py-0 notifications-dropdown">
@@ -293,6 +294,21 @@
     <!-- Profile Dropdown Script -->
     <script>
       $(document).ready(function() {
+        // Notification badge: hide when icon is clicked (persist for session, per user)
+        (function() {
+          var $badge = $('#notificationBadge');
+          var storageKey = 'notificationSeen_{{ Auth::id() ?? 0 }}';
+          if ($badge.length && sessionStorage.getItem(storageKey)) {
+            $badge.addClass('d-none');
+          }
+          $('#notificationIcon').on('click', function() {
+            if ($badge.length) {
+              $badge.addClass('d-none');
+              sessionStorage.setItem(storageKey, '1');
+            }
+          });
+        })();
+        
         $('#profileDropdown').on('click', function() {
           const userNameDisplay = $('#userNameDisplay');
           const currentText = userNameDisplay.text().trim();

@@ -105,8 +105,23 @@
 
   #leasesTable th:nth-child(11),
   #leasesTable td:nth-child(11) {
-    width: 120px;
-    min-width: 120px;
+    width: 160px;
+    min-width: 160px;
+    white-space: nowrap;
+  }
+
+  /* Keep all action buttons on one row (no wrap in 100% view) */
+  #leasesTable .actions-cell {
+    min-width: 160px;
+  }
+  #leasesTable .actions-cell .d-flex,
+  #leasesTable .actions-cell [data-label="Actions"] .d-flex {
+    flex-wrap: nowrap !important;
+    flex-shrink: 0;
+  }
+  #leasesTable .actions-cell > span,
+  #leasesTable .actions-cell [data-label="Actions"] {
+    display: inline-block;
     white-space: nowrap;
   }
 
@@ -162,6 +177,14 @@
       color: #7F9267;
       margin-right: 1rem;
       flex-shrink: 0;
+    }
+
+    /* Actions cell: keep all buttons on one row in mobile/card view */
+    #leasesTable tbody td.actions-cell {
+      flex-wrap: nowrap;
+    }
+    #leasesTable tbody td.actions-cell .d-flex {
+      flex-wrap: nowrap !important;
     }
     
     .card-header {
@@ -427,8 +450,8 @@ $(function(){
         }
         return badge;
       }},
-      {data: null, orderable: false, className: 'text-center', render: function(data, type, row) {
-        let html = '<div class="d-flex gap-1 justify-content-center flex-wrap">';
+      {data: null, orderable: false, className: 'text-center actions-cell', render: function(data, type, row) {
+        let html = '<div class="d-flex gap-1 justify-content-center flex-nowrap">';
         html += `<button class="btn btn-sm btn-outline-primary view-contract" data-id="${data.contractID}" title="View Details"><i class="bx bx-show"></i></button>`;
         if (data.canRenew) {
           html += `<a href="/admins/leases/${data.contractID}/renew" class="btn btn-sm btn-outline-success" title="Renew"><i class="bx bx-refresh"></i></a>`;
@@ -454,7 +477,7 @@ $(function(){
     language: { lengthMenu: "Show _MENU_ entries" },
     lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
     columnDefs: [
-      { targets: -1, className: 'text-nowrap', responsivePriority: 1 },
+      { targets: -1, className: 'text-nowrap actions-cell', responsivePriority: 1 },
       { targets: 9, responsivePriority: 2 },
       { targets: 2, responsivePriority: 3 },
       { targets: 1, responsivePriority: 4 },

@@ -12,7 +12,7 @@
             <span class="position-absolute start-0 top-50 translate-middle-y ms-3" style="z-index: 1; color: #7F9267;">
                 <i class="bx bx-search fs-5"></i>
             </span>
-            <input type="text" id="usersSearch" class="form-control rounded-pill ps-5 pe-4" placeholder="Search" aria-label="Search" style="background-color: #EFEFEA; border-color: rgba(127, 146, 103, 0.2); color: #7F9267;">
+            <input type="text" id="usersSearch" class="form-control rounded-pill ps-5 pe-4" placeholder="Search by name, email, contact, role..." aria-label="Search" style="background-color: #EFEFEA; border-color: rgba(127, 146, 103, 0.2); color: #7F9267;">
         </div>
     </div>
     <!-- /Search Bar -->
@@ -26,6 +26,18 @@
   </div>
 
   <div class="card-body">
+    <div class="d-flex flex-wrap gap-2 mb-3" id="statusTabs">
+      <button type="button" class="btn btn-outline-primary status-tab active" data-status="all">
+        All <span class="badge bg-primary ms-1">{{ $statusCounts['All'] ?? 0 }}</span>
+      </button>
+      <button type="button" class="btn btn-outline-primary status-tab" data-status="Active">
+        Active <span class="badge bg-primary ms-1">{{ $statusCounts['Active'] ?? 0 }}</span>
+      </button>
+      <button type="button" class="btn btn-outline-secondary status-tab" data-status="Inactive">
+        Inactive <span class="badge bg-secondary ms-1">{{ $statusCounts['Inactive'] ?? 0 }}</span>
+      </button>
+    </div>
+
     <!-- Action Buttons Group (aligned with DataTables length selector) -->
     <div class="d-flex align-items-center gap-2" id="actionButtonsGroup" style="display: none !important;">
         <!-- Archive Button (hidden by default, shown when rows are selected) -->
@@ -434,6 +446,21 @@
 
 @push('styles')
 <style>
+  /* Status filter tabs - active state */
+  #statusTabs .status-tab.active {
+    font-weight: 600;
+  }
+  #statusTabs .status-tab.active.btn-outline-primary {
+    background-color: rgba(127, 146, 103, 0.15);
+    border-color: rgba(127, 146, 103, 0.5);
+    color: #7F9267;
+  }
+  #statusTabs .status-tab.active.btn-outline-secondary {
+    background-color: rgba(108, 117, 125, 0.2);
+    border-color: rgba(108, 117, 125, 0.5);
+    color: #6c757d;
+  }
+
   /* Search input placeholder styling */
   #usersSearch::placeholder {
     color: rgba(127, 146, 103, 0.6) !important;
@@ -464,7 +491,13 @@
 $(function(){
   $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
   var table = $('#usersTable').DataTable({
-    ajax: "{{ route('admins.data') }}",
+    ajax: {
+      url: "{{ route('admins.data') }}",
+      data: function(d) {
+        d.status = $('#statusTabs .status-tab.active').data('status') || 'all';
+        d.search = $('#usersSearch').val();
+      }
+    },
     columns: [
       {data:null, className:'control', orderable:false, render:()=>''},
       {data:null, orderable:false, className:'text-center', render:function(d){
@@ -536,17 +569,18 @@ $(function(){
     lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
   });
 
-  // Bind search bar to DataTable
+  // Bind search bar - triggers ajax reload with global search (debounced)
+  var searchTimeout;
   $('#usersSearch').on('keyup', function(){
-    const query = $(this).val();
-    table.search(query).draw();
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(function(){ table.ajax.reload(); }, 300);
   });
 
-  // Clear search when input is cleared
-  $('#usersSearch').on('input', function(){
-    if ($(this).val() === '') {
-      table.search('').draw();
-    }
+  // Status filter tabs
+  $('#statusTabs').on('click', '.status-tab', function() {
+    $('#statusTabs .status-tab').removeClass('active');
+    $(this).addClass('active');
+    table.ajax.reload();
   });
 
   // Replace native select with Bootstrap dropdown and align action buttons

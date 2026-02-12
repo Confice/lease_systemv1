@@ -22,6 +22,18 @@
   </div>
 
   <div class="card-body">
+    <div class="d-flex flex-wrap gap-2 mb-3" id="statusTabs">
+      <button type="button" class="btn btn-outline-primary status-tab active" data-status="all">
+        All <span class="badge bg-primary ms-1">{{ $statusCounts['All'] ?? 0 }}</span>
+      </button>
+      <button type="button" class="btn btn-outline-primary status-tab" data-status="Occupied">
+        Occupied <span class="badge bg-primary ms-1">{{ $statusCounts['Occupied'] ?? 0 }}</span>
+      </button>
+      <button type="button" class="btn btn-outline-secondary status-tab" data-status="Vacant">
+        Vacant <span class="badge bg-secondary ms-1">{{ $statusCounts['Vacant'] ?? 0 }}</span>
+      </button>
+    </div>
+
     <!-- Action Buttons Group (aligned with DataTables length selector) -->
     <div class="d-flex align-items-center gap-2" id="actionButtonsGroup" style="display: none !important;">
         <!-- Archive Button (hidden by default, shown when rows are selected) -->
@@ -68,6 +80,25 @@
           </tr>
         </thead>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- Offcanvas View Contract (from stall table) -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="viewContractDrawerStalls">
+  <div class="offcanvas-header border-bottom bg-light">
+    <h5 class="offcanvas-title d-flex align-items-center fw-bold text-primary">
+      <i class="bx bx-file me-2 fs-3"></i> CONTRACT DETAILS
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <div id="contractDetailsContentStalls">
+      <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -378,18 +409,7 @@
           <div class="invalid-feedback d-block" data-error="applicationDeadline"></div>
         </div>
 
-        <div class="col-12">
-          <label class="form-label">Stall Status <span class="text-danger">*</span></label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bx bx-badge-check"></i></span>
-            <select name="stallStatus" id="editStallStatus" class="form-select">
-              <option value="">Select Status</option>
-              <option value="Vacant">Vacant</option>
-              <option value="Occupied">Occupied</option>
-            </select>
-          </div>
-          <div class="invalid-feedback d-block" data-error="stallStatus"></div>
-        </div>
+        <input type="hidden" name="stallStatus" id="editStallStatus">
       </div>
 
       <div class="d-flex justify-content-end gap-2 mt-4">
@@ -517,8 +537,8 @@
         </div>
       </div>
       <div class="modal-footer border-top">
-        <button type="button" class="btn btn-label-primary" data-bs-dismiss="modal">
-          <i class="bx bx-x me-1"></i> Close
+        <button type="button" class="btn btn-primary" id="btnConfirmRequirements">
+          <i class="bx bx-check me-1"></i> Confirm
         </button>
       </div>
     </div>
@@ -614,6 +634,21 @@
     color: white;
   }
 
+  /* Status filter tabs - active state */
+  #statusTabs .status-tab.active {
+    font-weight: 600;
+  }
+  #statusTabs .status-tab.active.btn-outline-primary {
+    background-color: rgba(127, 146, 103, 0.15);
+    border-color: rgba(127, 146, 103, 0.5);
+    color: #7F9267;
+  }
+  #statusTabs .status-tab.active.btn-outline-secondary {
+    background-color: rgba(108, 117, 125, 0.2);
+    border-color: rgba(108, 117, 125, 0.5);
+    color: #6c757d;
+  }
+
   /* Search input placeholder styling */
   #stallsSearch::placeholder {
     color: rgba(127, 146, 103, 0.6) !important;
@@ -657,8 +692,50 @@
   #assignTenantModal .modal-footer * {
     pointer-events: auto !important;
   }
+  /* Requirements modal: same z-index as Assign Tenant so it appears above backdrop (10599) */
+  #requirementsModal.modal {
+    z-index: 10600 !important;
+    pointer-events: auto !important;
+  }
+  #requirementsModal.modal .modal-dialog,
+  #requirementsModal.modal .modal-content {
+    pointer-events: auto !important;
+  }
+  #requirementsModal.modal .modal-header *,
+  #requirementsModal.modal .modal-body *,
+  #requirementsModal.modal .modal-footer * {
+    pointer-events: auto !important;
+  }
+  /* Nested Add/Edit requirement modal: above requirements modal */
+  #requirementFormModal.modal {
+    z-index: 10601 !important;
+    pointer-events: auto !important;
+  }
+  #requirementFormModal.modal .modal-dialog,
+  #requirementFormModal.modal .modal-content {
+    pointer-events: auto !important;
+  }
   body .modal-backdrop {
     z-index: 10599 !important;
+  }
+
+  /* Contract status badges in view drawer */
+  #viewContractDrawerStalls .status-active {
+    background-color: rgba(25, 135, 84, 0.15);
+    color: #198754;
+  }
+  #viewContractDrawerStalls .status-terminated {
+    background-color: rgba(108, 117, 125, 0.15);
+    color: #6c757d;
+  }
+  #viewContractDrawerStalls .status-expiring {
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #cc9a00;
+  }
+  #viewContractDrawerStalls .status-secondary,
+  #viewContractDrawerStalls .status-na {
+    background-color: rgba(108, 117, 125, 0.15);
+    color: #6c757d;
   }
 </style>
 @endpush
@@ -684,7 +761,12 @@ $(function(){
   $('input[name="applicationDeadline"]').attr('min', today);
   
   var table = $('#stallsTable').DataTable({
-    ajax: "{{ route('admins.stalls.data') }}",
+    ajax: {
+      url: "{{ route('admins.stalls.data') }}",
+      data: function(d) {
+        d.status = $('#statusTabs .status-tab.active').data('status') || 'all';
+      }
+    },
     columns: [
       {data:null, className:'control', orderable:false, render:()=>''},
       {data:null, orderable:false, className:'text-center', render:function(d){
@@ -796,7 +878,7 @@ $(function(){
           </div>`;
       }}
     ],
-    order:[[2,'asc']], // Sort by # column (which uses ID for sorting) - column index 2
+    order:[[4,'asc']], // Sort alphabetically by Stall Name (stallNo)
     pageLength:10,
     responsive:true,
     dom: 'lrtip', // l = length, r = processing, t = table, i = info, p = pagination (no search - using card search)
@@ -817,6 +899,13 @@ $(function(){
     if ($(this).val() === '') {
       table.search('').draw();
     }
+  });
+
+  // Status filter tabs
+  $('#statusTabs').on('click', '.status-tab', function() {
+    $('#statusTabs .status-tab').removeClass('active');
+    $(this).addClass('active');
+    table.ajax.reload();
   });
 
   // Replace native select with Bootstrap dropdown and align action buttons
@@ -1043,22 +1132,87 @@ $(function(){
     return 'STALL-' + String(id).padStart(4, '0');
   }
 
-  // Click handler for contract icon
-  $(document).on('click', '.bx-file.text-primary', function () {
+  // Click handler for contract icon - fetch and show contract details
+  $(document).on('click', '#stallsTable .bx-file.text-primary', function () {
     let rowData = table.row($(this).closest('tr')).data();
-    if (rowData && rowData.contractID) {
-      // TODO: Open contract view modal or redirect to contract page
-      Swal.fire({
-        icon: 'info',
-        title: 'Contract',
-        text: `Opening contract #${rowData.contractID}`,
-        timer: 2000,
-        showConfirmButton: false,
-        animation: false,
-        showClass: { popup: '' },
-        hideClass: { popup: '' }
-      });
-    }
+    if (!rowData || !rowData.contractID) return;
+
+    const contractId = rowData.contractID;
+    const drawer = new bootstrap.Offcanvas(document.getElementById('viewContractDrawerStalls'));
+
+    $('#contractDetailsContentStalls').html('<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading contract...</p></div>');
+    drawer.show();
+
+    $.ajax({
+      url: `/admins/leases/${contractId}`,
+      method: 'GET',
+      success: function(response) {
+        if (response.success) {
+          const t = response.tenant;
+          const userContracts = response.userContracts || [];
+
+          let html = `
+            <div class="mb-4">
+              <h6 class="text-muted mb-2">Tenant Information</h6>
+              <p class="mb-1"><strong>Name:</strong> ${t ? t.name : 'N/A'}</p>
+              <p class="mb-1"><strong>Email:</strong> ${t ? t.email : 'N/A'}</p>
+              <p class="mb-1"><strong>Contact:</strong> ${t ? t.contactNo : 'N/A'}</p>
+            </div>
+
+            <div class="mb-4">
+              <h6 class="text-muted mb-2">All Contracts (${userContracts.length})</h6>
+          `;
+
+          if (userContracts.length === 0) {
+            html += `<p class="text-muted mb-0">No contracts found.</p>`;
+          } else {
+            userContracts.forEach(function(c, idx) {
+              const stall = c.stall || {};
+              const rent = stall.rentalFee ? '₱' + parseFloat(stall.rentalFee).toFixed(2) : '-';
+              const statusClass = (c.contractStatus || 'N/A').toLowerCase() || 'secondary';
+              const isTerminated = c.contractStatus === 'Terminated';
+              html += `
+                <div class="card mb-3 border contract-card-display" data-contract-id="${c.contractID}">
+                  <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <strong>Contract #${c.contractID}</strong>
+                      <div class="d-flex align-items-center gap-1">
+                        <span class="badge status-${statusClass}">${c.contractStatus || 'N/A'}</span>
+                        ${isTerminated ? `<button type="button" class="btn btn-sm btn-link p-0 text-muted btn-remove-contract-display" data-contract-id="${c.contractID}" title="Remove from view"><i class="bx bx-x-circle fs-5"></i></button>` : ''}
+                      </div>
+                    </div>
+                    <p class="mb-1 small"><strong>Stall:</strong> ${stall.formattedStallId || '-'}</p>
+                    <p class="mb-1 small"><strong>Marketplace:</strong> ${stall.marketplace || '-'}</p>
+                    <p class="mb-1 small"><strong>Monthly Rent:</strong> ${rent}</p>
+                    <p class="mb-1 small"><strong>Start:</strong> ${c.startDate || 'N/A'} — <strong>End:</strong> ${c.endDate || 'No end date'}</p>
+                    <p class="mb-2 small text-muted">Bills: ${c.billsCount || 0} | Feedback: ${c.feedbacksCount || 0}</p>
+                    ${c.contractStatus === 'Active' ? `
+                      <a href="/admins/leases/${c.contractID}/renew" class="btn btn-sm btn-outline-success me-1"><i class="bx bx-refresh"></i></a>
+                      <a href="/admins/leases/${c.contractID}/terminate" class="btn btn-sm btn-outline-danger"><i class="bx bx-x"></i></a>
+                    ` : ''}
+                  </div>
+                </div>
+              `;
+            });
+          }
+
+          html += `</div>`;
+
+          $('#contractDetailsContentStalls').html(html);
+        } else {
+          $('#contractDetailsContentStalls').html('<div class="alert alert-danger">Failed to load contract details.</div>');
+        }
+      },
+      error: function() {
+        $('#contractDetailsContentStalls').html('<div class="alert alert-danger">Failed to load contract details. Please try again.</div>');
+      }
+    });
+  });
+
+  // Remove terminated contract from view (display only)
+  $(document).on('click', '#viewContractDrawerStalls .btn-remove-contract-display', function() {
+    const contractId = $(this).data('contract-id');
+    $(`#viewContractDrawerStalls .contract-card-display[data-contract-id="${contractId}"]`).fadeOut(200, function() { $(this).remove(); });
   });
 
   // View stall details
@@ -1313,25 +1467,17 @@ $(function(){
       $('#editRentalFee').val(stall.rentalFee || '');
       $('#editStallStatus').val(stall.stallStatus || '');
       
-      // Ensure status field is always enabled
-      $('#editStallStatus').prop('disabled', false);
-      $('#editStallStatus').removeAttr('title');
-      
-      // Show/hide fields based on status
+      // Show/hide fields based on status (status is not editable - controlled by assign/terminate)
       if (stall.stallStatus === 'Occupied') {
-        // Show Stall Name field for Occupied stalls
         $('#editStallNoContainer').removeClass('d-none');
         $('#editApplicationDeadlineContainer').addClass('d-none');
       } else if (stall.stallStatus === 'Vacant') {
-        // Show Application Deadline field for Vacant stalls
         $('#editStallNoContainer').addClass('d-none');
         $('#editApplicationDeadlineContainer').removeClass('d-none');
-        // Set minimum date to today
         const today = new Date().toISOString().split('T')[0];
         $('#editApplicationDeadline').attr('min', today);
         $('#editApplicationDeadline').val(stall.applicationDeadline || '');
       } else {
-        // Hide both for other statuses
         $('#editStallNoContainer').addClass('d-none');
         $('#editApplicationDeadlineContainer').addClass('d-none');
       }
@@ -1668,10 +1814,157 @@ $(function(){
   // Requirements Management
   // ============================================
   
-  // Open Requirements Modal
+  // Open Requirements Modal (use getOrCreateInstance to avoid multiple instances; clean up on hide)
+  var requirementsModalEl = document.getElementById('requirementsModal');
+  if (requirementsModalEl) {
+    $(requirementsModalEl).on('hidden.bs.modal', function() {
+      $('.modal-backdrop').remove();
+      $('body').removeClass('modal-open').css({ overflow: '', paddingRight: '' });
+    });
+  }
   $('#btnListRequirements').on('click', function() {
+    if (!requirementsModalEl) return;
+    resetPendingChanges();
     loadRequirements();
-    new bootstrap.Modal('#requirementsModal').show();
+    bootstrap.Modal.getOrCreateInstance(requirementsModalEl).show();
+  });
+
+  // Pending changes - nothing is saved until Confirm is clicked
+  let pendingCheckboxChanges = {};
+  let pendingEdits = {};
+  let pendingAdditions = [];
+
+  function resetPendingChanges() {
+    pendingCheckboxChanges = {};
+    pendingEdits = {};
+    pendingAdditions = [];
+  }
+
+  $('#btnConfirmRequirements').on('click', function() {
+    const hasChanges = pendingAdditions.length > 0 ||
+      Object.keys(pendingEdits).length > 0 ||
+      Object.keys(pendingCheckboxChanges).length > 0;
+
+    if (!hasChanges) {
+      bootstrap.Modal.getInstance(requirementsModalEl).hide();
+      loadRequirements();
+      return;
+    }
+
+    // Show confirmation before saving
+    Swal.fire({
+      title: 'Confirm changes?',
+      text: 'Save all changes to requirements?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#7F9267',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, save changes',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      const $btn = $('#btnConfirmRequirements').prop('disabled', true);
+      const promises = [];
+
+    // Apply pending additions
+    pendingAdditions.forEach(function(item) {
+      promises.push({
+        type: 'add',
+        req: $.ajax({
+          url: "{{ route('admins.stalls.requirements.store') }}",
+          method: 'POST',
+          data: {
+            requirement_name: item.name,
+            document_type: item.documentType,
+            description: null,
+            is_active: item.isActive ? 1 : 0,
+            _token: $('meta[name="csrf-token"]').attr('content')
+          }
+        })
+      });
+    });
+
+    // Apply pending edits
+    $.each(pendingEdits, function(id, data) {
+      promises.push({
+        type: 'edit',
+        req: $.ajax({
+          url: `{{ route('admins.stalls.requirements.index') }}/${id}`,
+          method: 'PUT',
+          data: {
+            requirement_name: data.name,
+            document_type: data.documentType,
+            is_active: data.isActive ? 1 : 0,
+            _token: $('meta[name="csrf-token"]').attr('content')
+          }
+        })
+      });
+    });
+
+    // Apply pending checkbox changes (only for ids not in pendingEdits)
+    $.each(pendingCheckboxChanges, function(id, isActive) {
+      if (pendingEdits[id]) return;
+      const $row = $(`.requirement-row[data-id="${id}"]`);
+      if (!$row.length) return;
+      const name = $row.find('.requirement-name-display, .fw-semibold').first().text().trim();
+      const docType = $row.data('document-type') || 'Proposal';
+      promises.push({
+        type: 'checkbox',
+        req: $.ajax({
+          url: `{{ route('admins.stalls.requirements.index') }}/${id}`,
+          method: 'PUT',
+          data: {
+            requirement_name: name,
+            document_type: docType,
+            is_active: isActive ? 1 : 0,
+            _token: $('meta[name="csrf-token"]').attr('content')
+          }
+        })
+      });
+    });
+
+    if (promises.length === 0) {
+      $btn.prop('disabled', false);
+      bootstrap.Modal.getInstance(requirementsModalEl).hide();
+      loadRequirements();
+      return;
+    }
+
+    let hasError = false;
+    Promise.all(promises.map(p => p.req)).then(function() {
+      const errs = arguments[0];
+      if (errs && errs.some(e => e && e.status && e.status >= 400)) hasError = true;
+    }).catch(function() { hasError = true; }).finally(function() {
+      const allReqs = promises.map(p => p.req);
+      $.when.apply($, allReqs).done(function() {
+        resetPendingChanges();
+        bootstrap.Modal.getInstance(requirementsModalEl).hide();
+        loadRequirements();
+        Swal.fire({
+          icon: 'success',
+          title: 'Saved!',
+          text: 'All changes have been saved.',
+          toast: true,
+          position: 'top',
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true
+        });
+      }).fail(function(xhr) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: xhr.responseJSON?.message || 'Failed to save some changes. Please try again.',
+          toast: true,
+          position: 'top',
+          timer: 3000
+        });
+      }).always(function() {
+        $btn.prop('disabled', false);
+      });
+    });
+    });
   });
 
   // Load Requirements List
@@ -1760,18 +2053,17 @@ $(function(){
         <tr>
           <td colspan="4" class="text-center text-muted py-5">
             <i class="bx bx-clipboard fs-1 mb-3"></i>
-            <p class="mb-0">No requirements added yet. Hover below to add a new requirement.</p>
+            <p class="mb-0">No requirements added yet. Add a new requirement below.</p>
           </td>
         </tr>
         <tr class="requirement-row-hover" data-document-type="${documentType}">
           <td colspan="4" class="text-center py-2" style="border: none;">
-            <button type="button" class="btn btn-sm btn-primary btn-add-inline" data-position="0" data-document-type="${documentType}" style="opacity: 0; transition: opacity 0.2s;">
+            <button type="button" class="btn btn-sm btn-primary btn-add-inline" data-position="0" data-document-type="${documentType}">
               <i class="bx bx-plus me-1"></i> Add Requirement
             </button>
           </td>
         </tr>
       `);
-      setupRequirementRowHover();
       return;
     }
 
@@ -1801,11 +2093,11 @@ $(function(){
       `;
     });
     
-    // Add only ONE hover row at the end for adding new requirements
+    // Add only ONE row at the end for adding new requirements
     html += `
       <tr class="requirement-row-hover" data-document-type="${documentType}">
         <td colspan="4" class="text-center py-2" style="border: none;">
-          <button type="button" class="btn btn-sm btn-primary btn-add-inline" data-position="${requirements.length}" data-document-type="${documentType}" style="opacity: 0; transition: opacity 0.2s;">
+          <button type="button" class="btn btn-sm btn-primary btn-add-inline" data-position="${requirements.length}" data-document-type="${documentType}">
             <i class="bx bx-plus me-1"></i> Add Requirement
           </button>
         </td>
@@ -1813,18 +2105,6 @@ $(function(){
     `;
 
     $list.html(html);
-    
-    // Setup hover functionality
-    setupRequirementRowHover();
-  }
-
-  // Setup hover functionality for add buttons
-  function setupRequirementRowHover() {
-    $('.requirement-row-hover').on('mouseenter', function() {
-      $(this).find('.btn-add-inline').css('opacity', '1');
-    }).on('mouseleave', function() {
-      $(this).find('.btn-add-inline').css('opacity', '0');
-    });
   }
 
   // Open Add Requirement Form (inline add button)
@@ -1893,13 +2173,12 @@ $(function(){
       $formRow.after(`
         <tr class="requirement-row-hover">
           <td colspan="4" class="text-center py-1 position-relative" style="border: none; height: 30px;">
-            <button type="button" class="btn btn-sm btn-primary btn-add-inline" data-position="0" style="opacity: 0; transition: opacity 0.2s;">
+            <button type="button" class="btn btn-sm btn-primary btn-add-inline" data-position="0">
               <i class="bx bx-plus me-1"></i> Add Requirement
             </button>
           </td>
         </tr>
       `);
-      setupRequirementRowHover();
     }
   });
   
@@ -2084,9 +2363,22 @@ $(function(){
       return;
     }
     
-    const $btn = $(this).prop('disabled', true);
+    const $btn = $(this);
     
-    $.ajax({
+    // Show confirmation before updating
+    Swal.fire({
+      title: 'Confirm Update?',
+      text: `Are you sure you want to update this requirement to "${newName}"?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#7F9267',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, update'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      
+      $btn.prop('disabled', true);
+      $.ajax({
       url: `{{ route('admins.stalls.requirements.index') }}/${id}`,
       method: 'PUT',
       data: {
@@ -2145,6 +2437,7 @@ $(function(){
       }
     });
   });
+  });
 
   // Save Requirement (Add/Edit)
   $('#btnSaveRequirement').on('click', function() {
@@ -2172,13 +2465,15 @@ $(function(){
       _token: $('meta[name="csrf-token"]').attr('content')
     };
 
-    const $btn = $(this).prop('disabled', true);
+    const $btn = $(this);
     const url = requirementId 
       ? `{{ route('admins.stalls.requirements.index') }}/${requirementId}`
       : "{{ route('admins.stalls.requirements.store') }}";
     const method = requirementId ? 'PUT' : 'POST';
 
-    $.ajax({
+    const doSave = function() {
+      $btn.prop('disabled', true);
+      $.ajax({
       url: url,
       method: method,
       data: formData,
@@ -2219,9 +2514,26 @@ $(function(){
         $btn.prop('disabled', false);
       }
     });
+    };
+
+    if (requirementId) {
+      Swal.fire({
+        title: 'Confirm Update?',
+        text: 'Are you sure you want to update this requirement?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#7F9267',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, update'
+      }).then((result) => {
+        if (result.isConfirmed) doSave();
+      });
+    } else {
+      doSave();
+    }
   });
 
-  // Handle Required checkbox change
+  // Handle Required checkbox change - store in pending, do NOT save until Confirm
   $(document).on('change', '.requirement-checkbox', function() {
     const $checkbox = $(this);
     const id = $checkbox.data('id');
@@ -2232,73 +2544,20 @@ $(function(){
       return;
     }
     
-    const isRequired = $checkbox.is(':checked');
+    const isActive = $checkbox.is(':checked');
     const $row = $checkbox.closest('.requirement-row');
     
     // Get document type from data attribute
     const documentType = $row.data('document-type') || 'Proposal';
-    const requirementName = $row.find('.fw-semibold').text().trim();
+    const requirementName = $row.find('.fw-semibold, .requirement-name-display').first().text().trim();
     
     if (!requirementName) {
-      $checkbox.prop('checked', !isRequired);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Could not find requirement name.',
-        toast: true,
-        position: 'top',
-        timer: 2000,
-        timerProgressBar: true
-      });
+      $checkbox.prop('checked', !isActive);
       return;
     }
     
-    $.ajax({
-      url: `{{ route('admins.stalls.requirements.index') }}/${id}`,
-      method: 'PUT',
-      data: {
-        requirement_name: requirementName,
-        document_type: documentType,
-        is_active: isRequired ? 1 : 0,
-        _token: $('meta[name="csrf-token"]').attr('content')
-      },
-      success: function(response) {
-        // Visual feedback
-        Swal.fire({
-          icon: 'success',
-          title: 'Updated!',
-          text: `"${requirementName}" marked as ${isRequired ? 'Required' : 'Optional'}.`,
-          toast: true,
-          position: 'top',
-          showConfirmButton: false,
-          timer: 2000,
-          timerProgressBar: true
-        });
-      },
-      error: function(xhr) {
-        console.error('Update error:', xhr);
-        // Revert checkbox on error
-        $checkbox.prop('checked', !isRequired);
-        let errorMsg = 'Failed to update requirement status.';
-        if (xhr.responseJSON) {
-          if (xhr.responseJSON.message) {
-            errorMsg = xhr.responseJSON.message;
-          } else if (xhr.responseJSON.errors) {
-            const errors = Object.values(xhr.responseJSON.errors).flat();
-            errorMsg = errors[0] || errorMsg;
-          }
-        }
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: errorMsg,
-          toast: true,
-          position: 'top',
-          timer: 2000,
-          timerProgressBar: true
-        });
-      }
-    });
+    // Store in pending - no AJAX, no toast. Changes apply when user clicks Confirm.
+    pendingCheckboxChanges[id] = isActive;
   });
 
   // Delete Requirement
